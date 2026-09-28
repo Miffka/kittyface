@@ -14,6 +14,7 @@ These already exist in `src/kittyface/core/` and are referenced by later tasks. 
 - **RSCH-2** (E2): derived-geometry readouts. `geometry.eye_aspect_ratio`, `ear_angle`, `muzzle_spread_ratio`.
 - **RSCH-3** (E3): hand-authored anatomical adjacency and its GCN normalization, plus a random-adjacency control. `graph.py`.
 - **RSCH-4** (E4): yaw estimators (foreshortening ratio, midline offset) and the superseded centroid proxy. `geometry.yaw_*`.
+- **RSCH-6** (export): tflite to ONNX conversion checked against OpenVINO-on-tflite on local CatFLW fixtures. `scripts/03_export_onnx.py`; groomed issue and QA verdict in [docs/issues/RSCH-6.md](issues/RSCH-6.md).
 
 ## Research track
 
@@ -31,23 +32,6 @@ These already exist in `src/kittyface/core/` and are referenced by later tasks. 
 - [ ] Given a ratio value and a threshold version, a function returns the correct 0-2 score for values at, just below, and just above each cutoff.
 - [ ] The whisker/muzzle correlation number is written down somewhere `docs/AI_WORKFLOW.md` or a linked note can point the About-page copy at.
 - [ ] Re-scoring the same landmarks against a new threshold version does not require re-running detection.
-
-**Depends on.** Nothing outstanding.
-
-### RSCH-6 (export): tflite to ONNX conversion and equivalence check
-
-**Problem.** The two tflite models (`cat_face_localizer`, `cat_face_landmarks_full`) need ONNX exports for browser inference (PLAN_PROJECT.md item 15), and every future conversion has to be checked against the tflite original on real photos, not assumed correct.
-
-**Scope.**
-- A script that converts both models listed in `models/manifest.json` to ONNX with `tf2onnx` and writes their sha256 into the manifest.
-- A fixture set of a handful of representative cat photos, committed or fetched by a pinned script.
-- A check script that runs both the tflite and ONNX versions of each model on every fixture and fails on output divergence past a stated numeric tolerance.
-
-**Acceptance criteria.**
-- [ ] Running the conversion script produces `.onnx` files next to the `.tflite` ones and updates `models/manifest.json` with their hashes.
-- [ ] The check script exits non-zero and names the offending fixture if any output pair diverges past tolerance.
-- [ ] The check script exits zero on the current models and fixtures.
-- [ ] The numeric tolerance and its justification are written down in the script's own docstring.
 
 **Depends on.** Nothing outstanding.
 

@@ -40,3 +40,28 @@ Groomed from the RSCH-6 entry in [`docs/backlog.md`](../backlog.md#rsch-6-export
 - The ONNX file is written only after every fixture passes, so a failed check leaves nothing in `models/`.
 - Measured max divergence: localizer 1.8e-7, landmarks 2.3e-5. Tolerance 1e-4 (0.022 px at 224, 0.038 px at 384).
 - The `.onnx` files (34 MB and 23 MB) are not committed. The issue doesn't say whether they belong in git; the manifest records their sha256, and the product owner should decide.
+
+## QA: PASS
+
+- [x] `uv sync --group train --group dev` succeeds on Python 3.12, and `pyproject.toml` shows a `train` group with `tf2onnx` and `tensorflow-cpu` pinned - PASS. Ran on Python 3.12.3, exit 0; `train = ["tf2onnx==1.17.0", "tensorflow-cpu==2.21.0"]`.
+- [x] With the five CatFLW images in `data/catflw/images/`, `uv run python scripts/03_export_onnx.py` exits zero and leaves both `.onnx` files on disk - PASS. Exit 0, all 10 fixture/model checks printed, both files rewritten.
+- [x] Each manifest entry has an `"onnx"` object with `file` and `sha256`, each `sha256` matches `sha256sum`, and no pre-existing key changes - PASS. `sha256sum` matches both recorded hashes; `git diff 75f65b0 -- models/manifest.json` shows only the two added `"onnx"` lines.
+- [x] A second run produces no diff in `models/manifest.json` - PASS. Ran the script twice more; `git diff --stat models/manifest.json` is empty and the ONNX sha256s are unchanged.
+- [x] `--images` pointed at a nonexistent or empty directory exits non-zero naming that path, manifest unchanged - PASS. Both exit 1 with `no fixture images in <path> (missing or empty)`, and the manifest has no diff. A directory holding only a `.txt` file fails the same way.
+- [x] Tolerance below the measured divergence (or a perturbed ONNX output) makes `export_and_check` raise naming the fixture and the model - PASS. On temp copies of the tflite files: tolerance 1e-8 raises `ValueError` naming `cat_face_localizer.tflite` / `00000001_000.png` and `cat_face_landmarks_full.tflite` / `00000001_000.png`; tolerance 1e-5 on the landmark model raises naming `00000001_008.png` (1.68e-05). No `.onnx` is written on failure. The perturbation test in the suite also passes.
+- [x] The docstring states the tolerance in raw units and in pixels, plus the measured maximum divergence per model - PASS. 1e-4 normalized, 0.022 px / 0.038 px, localizer 1.8e-7 and landmarks 2.3e-5. My run measured max 1.79e-07 and 2.28e-05, consistent with it.
+- [x] Comparison uses raw tensors with a comment on the localizer's `[x2, y1, x1, y2]` order - PASS. `np.abs(got - want).max()` on the raw output with the comment above it. Each model has a single output (`[1, 4]` and `[1, 96]`), so comparing output 0 covers everything.
+- [x] `git status` shows nothing under `data/`, and the committed `.gitignore` contains `data/` - PASS. `git show HEAD:.gitignore` has `data/`; `git ls-files data` is empty; `git status` lists nothing under `data/`.
+- [x] `uv run pytest` passes with the train group and fixtures, and passes with skips without `tf2onnx` or without fixtures - PASS. With both present: 4 passed. After `uv sync --group dev`: 1 skipped ("tf2onnx not installed"). On a `git archive` copy with no `data/`, and again with an empty `data/catflw/images`: 2 passed, 2 skipped ("CatFLW fixtures missing or empty"). Afterwards I ran `uv sync --group train --group dev` again.
+- [x] `docs/DECISIONS.md` has entries for the OpenVINO reference, the tolerance, and the local-only CatFLW fixtures - PASS. All three are present.
+- [x] `grep -rn catface.ml AGENTS.md docs/backlog.md` returns nothing - PASS. Exit 1, no output.
+
+Tests: `uv run pytest -rs` with the train group and fixtures present: 4 passed, 0 failed. Without the train group: 1 skipped. Without fixtures (repo copy): 2 passed, 2 skipped.
+
+Gaps the tests do not cover (not failures):
+- The tests export and perturb only the localizer. Nothing in the suite covers the landmark model's export or its crop input built from the localizer box. I checked that path by hand, as described above.
+- No test runs `main()` on real fixtures, so writing the manifest, the key order and the byte-identical re-run are only checked by hand.
+- `main()` catches only `ValueError`. Any other error from tf2onnx or onnxruntime still exits non-zero and leaves the manifest unwritten, but it prints a traceback instead of a message naming the fixture and model.
+- If the second model fails in `main()`, the first model's `.onnx` is already in `models/` even though the manifest is not written.
+
+Repo state after QA: `git status` and `git diff --stat` match the starting state (only the product owner's `scripts/02_detect_landmarks.py` edit and the two untracked `.onnx` files), apart from this comment.
