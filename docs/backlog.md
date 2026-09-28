@@ -1,6 +1,6 @@
 # Backlog
 
-Tasks are tagged `RSCH-N` (research track, `catface.ml`) or `APP-N` (app track: backend, frontend, infra). Numbers are stable once assigned; do not renumber or reuse a retired number.
+Tasks are tagged `RSCH-N` (research track, `scripts/`) or `APP-N` (app track: backend, frontend, infra). Numbers are stable once assigned; do not renumber or reuse a retired number.
 
 Each task is groomed per `docs/team/pm.md`: a story or problem statement, a scope, checkable acceptance criteria, and its dependencies. Every task is sized to fit one engineer's single session; a task that grew past that got split rather than left large. An engineer who has not read this conversation should be able to implement a task from its entry alone, plus whatever it links to.
 
@@ -22,7 +22,7 @@ These already exist in `src/kittyface/core/` and are referenced by later tasks. 
 **Problem.** Each FGS action unit needs a 0-2 proxy score, but nothing yet turns a raw ratio (ear angle, eye aspect ratio, muzzle spread, whisker-pad displacement) into that score. The cutoffs have to come from data, and every future result has to record which cutoff version scored it.
 
 **Scope.**
-- A script under `catface.ml` that fits 0-2 cutoffs per AU ratio from a labeled dataset and writes `models/thresholds.json`, versioned (a version field plus one entry per AU).
+- A script under `scripts/` that fits 0-2 cutoffs per AU ratio from a labeled dataset and writes `models/thresholds.json`, versioned (a version field plus one entry per AU).
 - A written report of the correlation between whisker-pad displacement and muzzle tension, in the form the About page will quote (PLAN_PROJECT.md item 8).
 - Unit coverage for the scoring function that reads `thresholds.json` and returns a 0-2 integer for a given ratio and version.
 
