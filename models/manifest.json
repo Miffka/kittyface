@@ -2,6 +2,7 @@
   "cat_face_localizer": {
     "file": "cat_face_localizer.tflite",
     "sha256": "a9621320ba8ca39b706c82649737c3cb72ef10ba37200ee91e84346600bee0c7",
+    "onnx": {"file": "cat_face_localizer.onnx", "sha256": "b4c728518025310d60e27f381f0007671b12ec78d5d01d5120794fe941acdb8b"},
     "source": "https://huggingface.co/hugocornellier/cat-face-landmarks/resolve/main/cat_face_localizer.tflite",
     "licence": "CC BY-NC 4.0",
     "input_shape": [1, 224, 224, 3],
@@ -10,6 +11,7 @@
   "cat_face_landmarks": {
     "file": "cat_face_landmarks_full.tflite",
     "sha256": "1a8b09c4b30a8211de89979244ab90e595935c27fdba1e64b433990f8a3a5b66",
+    "onnx": {"file": "cat_face_landmarks_full.onnx", "sha256": "bf09427965e1fbab4cdc47489b77c8862ff257f9f958189cd7fed2eddba57428"},
     "source": "https://huggingface.co/hugocornellier/cat-face-landmarks/resolve/main/cat_face_landmarks_full.tflite",
     "licence": "CC BY-NC 4.0",
     "input_shape": [1, 384, 384, 3],
