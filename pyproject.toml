@@ -1,0 +1,28 @@
+[project]
+name = "kittyface"
+version = "0.1.0"
+description = "Cat facial landmarks"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "sqlalchemy",
+    "alembic",
+    "numpy",
+    "openvino",
+    "opencv-python-headless",
+]
+
+[dependency-groups]
+dev = ["pytest", "ruff", "mypy", "httpx", "python-dotenv", "onnx", "onnxruntime", "onnxsim"]
+
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
