@@ -1,17 +1,3 @@
-"""Adjacency construction for the 48-node cat-face graph (E3, RSCH-3).
-
-The anatomical adjacency is hand-authored and hand-reviewed, not
-geometrically derived: `build_cat_edges` parses
-`models/graph_edge_schemes/graph_edges_manual_v3.txt`,
-an edge list a human wrote after reviewing rendered overlays of an earlier
-geometric version (`scripts/graph_review_manual.py`). This module therefore
-does I/O (it reads that file) -- see docs/DECISIONS.md's 2026-09-20 entry for
-the full rationale and what changed.
-
-Also home to `random_edges`/`build_random_adjacency`, the random-adjacency
-ablation generator RSCH-3 requires as a control.
-"""
-
 import re
 from pathlib import Path
 

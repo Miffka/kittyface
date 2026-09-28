@@ -1,22 +1,3 @@
-"""Letterbox and crop-margin math shared by both tracks, plus Procrustes
-alignment (E1), derived-geometry readouts (E2: eye aspect ratio, ear angle,
-muzzle spread) and the E4 yaw estimators, used both as model features and as
-app-side readouts.
-
-Axis convention and projection model (E4, `docs/backlog.md` RSCH-4 second
-grooming pass), stated once and used by every `yaw_*` function below:
-
-    Right-handed world coordinates: `x` to the image right, `y` up, `z`
-    toward the camera. Yaw is rotation by `theta` about the vertical axis
-    `y`. Projection is weak perspective, orthographic plus a uniform scale,
-    so a world point `(x, y, z)` lands at `u = x*cos(theta) + z*sin(theta)`,
-    `v = y`.
-
-All three estimators run on `generalized_procrustes` output, so in-plane
-roll is already removed and the shapes share a frame. Pitch is not modelled
-and not removed: a stated limitation of every estimator here.
-"""
-
 from collections.abc import Sequence
 
 import cv2
