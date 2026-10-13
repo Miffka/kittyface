@@ -12,6 +12,7 @@ dependencies = [
     "numpy",
     "openvino",
     "opencv-python-headless",
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]
@@ -24,6 +25,7 @@ build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 88
