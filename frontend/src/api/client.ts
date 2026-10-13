@@ -7,8 +7,8 @@ import type { ApiService } from "./types";
 const env = import.meta.env;
 const baseUrl: string = env["VITE_API_BASE_URL"] ?? "";
 
-/** Mock mode when explicitly requested, or when no backend URL is configured. */
-export const USE_MOCK_API: boolean = env["VITE_USE_MOCK_API"] === "true" || baseUrl === "";
+/** Mock mode only when explicitly requested; an empty base URL means same-origin. */
+export const USE_MOCK_API: boolean = env["VITE_USE_MOCK_API"] === "true";
 
 export const api: ApiService = USE_MOCK_API
   ? createMockApi()

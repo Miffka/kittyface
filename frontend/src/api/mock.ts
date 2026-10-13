@@ -29,7 +29,7 @@ export interface MockApi extends ApiService {
   readonly consents: string[];
 }
 
-/** In-memory backend used when VITE_USE_MOCK_API=true. Errors go through the same mapping as HTTP. */
+/** In-memory backend used only when VITE_USE_MOCK_API=true. Errors go through the same mapping as HTTP. */
 export function createMockApi(options: { latencyMs?: number } = {}): MockApi {
   const latency = options.latencyMs ?? 150;
   const store = new Map<string, { detail: UploadDetail; image: Blob }>();
