@@ -5,7 +5,7 @@ uv sync --group train --group dev - add the research track's deps (tf2onnx, tens
 uv run pytest - the whole app-track suite
 uv run pytest tests/test_smoke.py - one test file
 uv run python manage.py migrate - apply database migrations
-uv run python scripts/<script>.py - research track scripts (E0–E5, export)
+uv run python scripts/<script>.py - research track scripts
 
 Rules
 
