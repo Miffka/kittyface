@@ -1,12 +1,13 @@
-"""In-memory state. Lost on restart."""
+"""App config and demo seed data."""
 
 import math
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import cv2
 import numpy as np
+from sqlalchemy.orm import Session
 
+from backend.db import Consent, Upload
 from backend.models import AppConfig, Box, Measurement, UploadMetadata
 
 CONFIG = AppConfig.model_validate(
@@ -26,26 +27,13 @@ CONFIG = AppConfig.model_validate(
 )
 
 
-@dataclass
-class Upload:
-    id: str
-    token: str
-    created_at: str
-    metadata: UploadMetadata
-    image: bytes
-    content_type: str
-
-
-consents: dict[str, str] = {}
-uploads: dict[str, Upload] = {}
-events: list = []
-
 # Paste this into the frontend's localStorage token to see the seed data.
 DEMO_TOKEN = "0" * 32
 
 
-def seed() -> None:
-    consents[DEMO_TOKEN] = CONFIG.notice_version
+def seed(session: Session) -> None:
+    """Idempotent: merge overwrites the same rows on every start."""
+    session.merge(Consent(token=DEMO_TOKEN, notice_version=CONFIG.notice_version))
     now = datetime.now(UTC)
     for i, (ratios, scores, color) in enumerate(
         [
@@ -71,27 +59,27 @@ def seed() -> None:
         ]
         png = cv2.imencode(".png", np.full((260, 320, 3), color, np.uint8))[1]
         upload_id = f"seed-{i + 1}"
-        uploads[upload_id] = Upload(
-            id=upload_id,
-            token=DEMO_TOKEN,
-            created_at=(now - timedelta(days=3 - i)).isoformat(),
-            metadata=UploadMetadata(
-                orientation=1,
-                detector_box=box,
-                final_box=box,
-                model_landmarks=points,
-                user_landmarks=points,
-                moved_flags=[False] * 48,
-                model_measurements=measurements,
-                user_measurements=measurements,
-                model_version="seed",
-                threshold_version=CONFIG.threshold_version,
-                geometry_version="seed",
-                notice_version=CONFIG.notice_version,
-            ),
-            image=png.tobytes(),
-            content_type="image/png",
+        session.merge(
+            Upload(
+                id=upload_id,
+                token=DEMO_TOKEN,
+                created_at=(now - timedelta(days=3 - i)).isoformat(),
+                meta=UploadMetadata(
+                    orientation=1,
+                    detector_box=box,
+                    final_box=box,
+                    model_landmarks=points,
+                    user_landmarks=points,
+                    moved_flags=[False] * 48,
+                    model_measurements=measurements,
+                    user_measurements=measurements,
+                    model_version="seed",
+                    threshold_version=CONFIG.threshold_version,
+                    geometry_version="seed",
+                    notice_version=CONFIG.notice_version,
+                ).model_dump(mode="json"),
+                image=png.tobytes(),
+                content_type="image/png",
+            )
         )
-
-
-seed()
+    session.commit()
