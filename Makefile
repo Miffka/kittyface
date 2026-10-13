@@ -1,4 +1,4 @@
-.PHONY: run backend frontend
+.PHONY: run backend frontend db
 
 # Both servers in parallel; Ctrl-C stops both.
 run:
@@ -9,3 +9,7 @@ backend:
 
 frontend:
 	cd frontend && bun --bun run dev
+
+# Creates the tables and demo seed in $DATABASE_URL (default ./kittyface.db).
+db:
+	uv run python -c "import backend.main"
