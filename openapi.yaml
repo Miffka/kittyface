@@ -1,0 +1,358 @@
+openapi: 3.1.0
+info:
+  title: KittyFace API
+  version: 1.0.0
+  description: |
+    The backend the frontend in `frontend/src/api/` expects. Derived from `http.ts`, `types.ts`, `errors.ts` and `mock.ts`.
+
+    Authentication is an anonymous per-browser client token: 32 lowercase hex characters, generated in the browser and kept in localStorage. The client sends it in `X-Client-Token` on every request except `POST /events`. Uploads are scoped to that token.
+
+    Consent gate: upload endpoints return 403 until the token has accepted the current notice via `POST /consent`. The client treats any 403 as "consent required" and shows the notice again. `GET /config` and `POST /consent` must not be consent-gated, because the client calls them before consent exists.
+
+    Error status codes the client distinguishes: 403, 404, 413, 415, 422 (with a check name in the body), 429 (with `Retry-After`). Anything else is shown as a generic error.
+servers:
+  - url: "{baseUrl}/api/v1"
+    variables:
+      baseUrl:
+        default: http://localhost:8000
+        description: Value of VITE_API_BASE_URL in the frontend.
+security:
+  - ClientToken: []
+paths:
+  /config:
+    get:
+      operationId: getConfig
+      summary: Scoring thresholds and the current notice version.
+      description: Called on app start, before consent. Must not return 403.
+      responses:
+        "200":
+          description: App configuration.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppConfig" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /consent:
+    post:
+      operationId: postConsent
+      summary: Record that this client token accepted a notice version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [notice_version]
+              properties:
+                notice_version:
+                  type: string
+                  description: Must match `AppConfig.notice_version`.
+                  example: "2026-10-04"
+      responses:
+        "204":
+          description: Consent recorded. The client ignores any body.
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /events:
+    post:
+      operationId: postEvent
+      summary: Anonymous telemetry for one model load or detection run.
+      description: Fire-and-forget with `keepalive`. Sent without the client token; the client ignores the response and all errors.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DetectionEvent" }
+      responses:
+        "204":
+          description: Event accepted.
+  /uploads:
+    get:
+      operationId: listUploads
+      summary: This client token's saved uploads, newest first.
+      responses:
+        "200":
+          description: Upload summaries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/UploadSummary" }
+        "403": { $ref: "#/components/responses/ConsentRequired" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+    post:
+      operationId: saveUpload
+      summary: Save a photo with its landmarks and measurements.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image, metadata]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: The photo with EXIF and other metadata stripped by the client, not rotated. JPEG, PNG or WebP, at most 5 MB. The filename is the user's original filename, or `image`.
+                metadata:
+                  $ref: "#/components/schemas/UploadMetadata"
+            encoding:
+              image:
+                contentType: image/jpeg, image/png, image/webp
+              metadata:
+                contentType: application/json
+      responses:
+        "201":
+          description: Saved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaveResult" }
+        "403": { $ref: "#/components/responses/ConsentRequired" }
+        "413":
+          description: Image larger than 5 MB.
+        "415":
+          description: Image is not JPEG, PNG or WebP.
+        "422":
+          description: Metadata failed a validation check. The client shows the check name.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationError" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /uploads/{id}:
+    parameters:
+      - $ref: "#/components/parameters/UploadId"
+    get:
+      operationId: getUpload
+      summary: One upload with its full metadata.
+      responses:
+        "200":
+          description: Upload detail.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadDetail" }
+        "403": { $ref: "#/components/responses/ConsentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+    delete:
+      operationId: deleteUpload
+      summary: Delete an upload and its image.
+      responses:
+        "204":
+          description: Deleted.
+        "403": { $ref: "#/components/responses/ConsentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /uploads/{id}/image:
+    parameters:
+      - $ref: "#/components/parameters/UploadId"
+    get:
+      operationId: getUploadImage
+      summary: The stored image bytes, as uploaded.
+      responses:
+        "200":
+          description: Image.
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+            image/webp:
+              schema: { type: string, format: binary }
+        "403": { $ref: "#/components/responses/ConsentRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+components:
+  securitySchemes:
+    ClientToken:
+      type: apiKey
+      in: header
+      name: X-Client-Token
+      description: Anonymous per-browser token, 32 lowercase hex characters (`^[0-9a-f]{32}$`).
+  parameters:
+    UploadId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    ConsentRequired:
+      description: The client token has not accepted the current notice. The client re-opens the consent modal.
+    NotFound:
+      description: Upload does not exist or does not belong to this client token.
+    TooManyRequests:
+      description: Rate limited.
+      headers:
+        Retry-After:
+          description: Seconds, or an HTTP date. The client defaults to 60 seconds if absent.
+          schema: { type: string }
+  schemas:
+    UnitKey:
+      type: string
+      enum: [ear, orbital, muzzle, whisker]
+    Thresholds:
+      type: object
+      required: [version, units]
+      properties:
+        version: { type: string }
+        units:
+          type: object
+          required: [ear, orbital, muzzle, whisker]
+          additionalProperties: false
+          properties:
+            ear: { $ref: "#/components/schemas/UnitThreshold" }
+            orbital: { $ref: "#/components/schemas/UnitThreshold" }
+            muzzle: { $ref: "#/components/schemas/UnitThreshold" }
+            whisker: { $ref: "#/components/schemas/UnitThreshold" }
+    UnitThreshold:
+      type: object
+      required: [cutoffs, direction]
+      properties:
+        cutoffs:
+          type: array
+          items: { type: number }
+          minItems: 2
+          maxItems: 2
+          description: The two ratio cutoffs that split scores 0, 1 and 2.
+        direction:
+          type: string
+          enum: [ascending, descending]
+    AppConfig:
+      type: object
+      required: [thresholds, threshold_version, notice_version]
+      properties:
+        thresholds: { $ref: "#/components/schemas/Thresholds" }
+        threshold_version: { type: string }
+        notice_version: { type: string }
+      example:
+        threshold_version: mock-thresholds-0.1.0
+        notice_version: "2026-10-04"
+        thresholds:
+          version: mock-thresholds-0.1.0
+          units:
+            ear: { cutoffs: [1.0, 1.3], direction: descending }
+            orbital: { cutoffs: [0.3, 0.42], direction: descending }
+            muzzle: { cutoffs: [0.42, 0.5], direction: ascending }
+            whisker: { cutoffs: [1.1, 1.25], direction: ascending }
+    DetectionEvent:
+      type: object
+      required: [model_version, backend, outcome, load_ms, inference_ms]
+      properties:
+        model_version: { type: [string, "null"] }
+        backend:
+          type: [string, "null"]
+          description: Inference backend, `wasm` or `webgpu`. Null when the models failed to load.
+        outcome:
+          type: string
+          enum: [face, no_face, load_failure, error]
+        load_ms: { type: [number, "null"] }
+        inference_ms: { type: [number, "null"] }
+    Box:
+      type: object
+      description: Pixel coordinates in the upright (EXIF-rotated) image.
+      required: [x, y, width, height]
+      properties:
+        x: { type: number }
+        y: { type: number }
+        width: { type: number }
+        height: { type: number }
+    XY:
+      type: array
+      description: "[x, y] in pixels of the upright image."
+      items: { type: number }
+      minItems: 2
+      maxItems: 2
+    Measurement:
+      type: object
+      required: [unit, ratio, score]
+      properties:
+        unit: { $ref: "#/components/schemas/UnitKey" }
+        ratio: { type: number }
+        score:
+          type: integer
+          enum: [0, 1, 2]
+    UploadMetadata:
+      type: object
+      required:
+        - orientation
+        - detector_box
+        - final_box
+        - model_landmarks
+        - user_landmarks
+        - moved_flags
+        - model_measurements
+        - user_measurements
+        - model_version
+        - threshold_version
+        - geometry_version
+        - notice_version
+      properties:
+        orientation:
+          type: integer
+          minimum: 1
+          maximum: 8
+          description: EXIF orientation read from the original file before stripping.
+        detector_box: { $ref: "#/components/schemas/Box" }
+        final_box:
+          $ref: "#/components/schemas/Box"
+          description: The box after any user adjustment.
+        model_landmarks:
+          type: array
+          items: { $ref: "#/components/schemas/XY" }
+          minItems: 48
+          maxItems: 48
+        user_landmarks:
+          type: array
+          items: { $ref: "#/components/schemas/XY" }
+          minItems: 48
+          maxItems: 48
+        moved_flags:
+          type: array
+          items: { type: boolean }
+          minItems: 48
+          maxItems: 48
+          description: Which landmarks the user dragged by hand.
+        model_measurements:
+          type: array
+          items: { $ref: "#/components/schemas/Measurement" }
+          minItems: 4
+          maxItems: 4
+        user_measurements:
+          type: array
+          items: { $ref: "#/components/schemas/Measurement" }
+          minItems: 4
+          maxItems: 4
+        model_version: { type: string }
+        threshold_version: { type: string }
+        geometry_version: { type: string }
+        notice_version:
+          type: string
+          description: Must equal the current `AppConfig.notice_version`, or the save fails with 422.
+    UploadSummary:
+      type: object
+      required: [id, created_at, model_version, user_measurements]
+      properties:
+        id: { type: string }
+        created_at: { type: string, format: date-time }
+        model_version: { type: string }
+        user_measurements:
+          type: array
+          items: { $ref: "#/components/schemas/Measurement" }
+    UploadDetail:
+      allOf:
+        - $ref: "#/components/schemas/UploadSummary"
+        - type: object
+          required: [metadata]
+          properties:
+            metadata: { $ref: "#/components/schemas/UploadMetadata" }
+    SaveResult:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string }
+    ValidationError:
+      type: object
+      description: The client reads the first non-empty string from `check`, `check_name`, `detail` or `message`, searching nested objects too.
+      properties:
+        check:
+          type: string
+          example: landmarks_inside_box
