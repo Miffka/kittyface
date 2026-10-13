@@ -2,7 +2,10 @@ import json
 import secrets
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
+from backend.db import DATABASE_URL, Upload
 from backend.main import app
 from backend.store import CONFIG, DEMO_TOKEN
 
@@ -154,3 +157,11 @@ def test_demo_token_sees_seed_newest_first():
     assert [u["id"] for u in seeded] == ["seed-3", "seed-2", "seed-1"]
     img = client.get("/api/v1/uploads/seed-1/image", headers=headers(DEMO_TOKEN))
     assert img.content.startswith(b"\x89PNG")
+
+
+def test_saved_upload_is_in_the_configured_database():
+    assert "test.db" in DATABASE_URL  # conftest's DATABASE_URL was honoured
+    upload_id = save(consented_token()).json()["id"]
+    # A fresh engine stands in for a restarted server.
+    with Session(create_engine(DATABASE_URL)) as session:
+        assert session.get(Upload, upload_id).image == PNG
