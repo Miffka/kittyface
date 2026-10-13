@@ -23,6 +23,8 @@ Prefer working locally? You need Node.js and npm — [install with nvm](https://
 ```sh
 git clone <this-repository-url>
 cd <repository-name>
-npm i
-npm run dev
+bun install
+bun --bun run dev # Dev build, open the server at http://localhost:8080
+bun --bun run build # Production build
+bun --bun run test # Run the tests
 ```
