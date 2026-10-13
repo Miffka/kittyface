@@ -9,3 +9,4 @@ __pycache__/
 .claude/
 data/
 *node_modules*
+*.db
