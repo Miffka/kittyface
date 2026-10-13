@@ -1,5 +1,9 @@
 Delivers the backend, storage, frontend, deploy, observability.
 
+Documents
+- /backend - the backend files
+- /frontend - the frontend files
+
 - PM — grooms a task before implementation, follows `docs/team/pm.md`
 - Engineer — implements one groomed task, follows
   `docs/team/software-engineer.md`
