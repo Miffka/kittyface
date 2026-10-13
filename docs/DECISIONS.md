@@ -11,3 +11,7 @@ The check fails when any raw output element differs by more than 1e-4 in normali
 ## CatFLW images stay local-only fixtures (RSCH-6)
 
 The export check runs on five CatFLW photos in `data/catflw/images/`. We have no redistribution rights for them, so `.gitignore` excludes `data/` and nothing under it gets committed. Tests that need the photos skip with a stated reason when the directory is missing or empty, and `scripts/03_export_onnx.py` exits non-zero naming the path.
+
+## In-memory backend for the frontend (`backend/`)
+
+`backend/` implements `openapi.yaml` with FastAPI and module-level dicts, so all state is lost on restart. Auth follows the spec: the anonymous `X-Client-Token` header plus the consent gate, with no accounts or passwords. Seed uploads belong to `DEMO_TOKEN` (32 zeros), which is pre-consented; set the frontend's localStorage token to it to see them. A 422 body names the first failing metadata field, or `notice_version`. Rate limiting (429) is not implemented, since the client works without it. SQLite persistence stays with APP-9/APP-11.
