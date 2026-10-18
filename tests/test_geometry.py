@@ -1,10 +1,16 @@
+import json
+from pathlib import Path
+
 import numpy as np
+import pytest
 
 from kittyface.core.geometry import (
+    AU_SCORE_RISES,
     ear_spread_ratio,
     eye_opening_ratio,
     muzzle_roundness,
     score_au,
+    score_ratio,
     whisker_elevation,
 )
 
@@ -57,3 +63,37 @@ def test_score_au_boundaries():
     values = np.array([0.9, 1.0, 1.1, 1.9, 2.0, 2.1])
     np.testing.assert_array_equal(score_au(values, (1.0, 2.0)), [0, 0, 1, 1, 1, 2])
     np.testing.assert_array_equal(score_au(values, (1.0, 2.0), rises=False), [2, 1, 1, 1, 0, 0])
+
+
+def write_thresholds(path: Path, version: str, ear: list[float], muzzle: list[float]) -> Path:
+    units = {"ear": {"cutoffs": ear}, "muzzle": {"cutoffs": muzzle}}
+    path.write_text(json.dumps({"version": version, "units": units}))
+    return path
+
+
+def test_score_ratio_boundaries(tmp_path):
+    path = write_thresholds(tmp_path / "t.json", "v1", ear=[1.7, 2.0], muzzle=[0.37, 0.42])
+    eps = 1e-6
+    ear = [score_ratio(v, "ear", "v1", path) for v in (1.7 - eps, 1.7, 1.7 + eps, 2.0 - eps, 2.0, 2.0 + eps)]
+    assert ear == [0, 0, 1, 1, 1, 2]  # rises
+    muzzle = [score_ratio(v, "muzzle", "v1", path) for v in (0.37 - eps, 0.37, 0.37 + eps, 0.42 - eps, 0.42, 0.42 + eps)]
+    assert muzzle == [2, 1, 1, 1, 0, 0]  # falls
+
+
+def test_score_ratio_rejects_other_version(tmp_path):
+    path = write_thresholds(tmp_path / "t.json", "v1", ear=[1.7, 2.0], muzzle=[0.37, 0.42])
+    with pytest.raises(ValueError, match="v2"):
+        score_ratio(1.8, "ear", "v2", path)
+
+
+def test_rescoring_stored_landmarks_needs_no_detection(tmp_path):
+    ratio = float(ear_spread_ratio(SHAPE[None])[0])
+    old = write_thresholds(tmp_path / "old.json", "v1", ear=[ratio + 1, ratio + 2], muzzle=[0, 1])
+    new = write_thresholds(tmp_path / "new.json", "v2", ear=[ratio - 2, ratio - 1], muzzle=[0, 1])
+    assert (score_ratio(ratio, "ear", "v1", old), score_ratio(ratio, "ear", "v2", new)) == (0, 2)
+
+
+def test_committed_thresholds_cover_every_au():
+    thresholds = json.loads((Path(__file__).parents[1] / "models" / "thresholds.json").read_text())
+    assert thresholds["version"]
+    assert thresholds["units"].keys() == AU_SCORE_RISES.keys()

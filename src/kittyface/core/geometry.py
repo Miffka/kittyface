@@ -1,4 +1,6 @@
+import json
 from collections.abc import Sequence
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -62,7 +64,7 @@ LEFT_MUZZLE_SIDE, RIGHT_MUZZLE_SIDE = (33, 46), (34, 47)
 # Closed ring around the muzzle: nose top, right side, chin, left side.
 MUZZLE_OUTLINE = (12, 13, 35, 47, 19, 2, 21, 46, 32)
 # Whether each AU's 0-2 score rises with its raw metric (see `score_au`).
-AU_SCORE_RISES = {"ears": True, "orbital": False, "muzzle": False, "whiskers": True}
+AU_SCORE_RISES = {"ear": True, "orbital": False, "muzzle": False, "whisker": True}
 
 
 def letterbox_square(image: np.ndarray, size: int) -> tuple[np.ndarray, float, int, int]:
@@ -249,6 +251,17 @@ def score_au(value: np.ndarray, cutoffs: Sequence[float], rises: bool = True) ->
     if rises:
         return np.searchsorted(cutoffs, value, side="left")
     return len(cutoffs) - np.searchsorted(cutoffs, value, side="right")
+
+
+def score_ratio(value: float, unit: str, version: str, path: Path) -> int:
+    """0-2 score for one AU ratio from the cutoffs in a thresholds file
+    (`models/thresholds.json`, written by `scripts/04_fit_thresholds.py`).
+    Raises if the file holds a different threshold version than requested."""
+    thresholds = json.loads(path.read_text())
+    if thresholds["version"] != version:
+        raise ValueError(f"{path} holds thresholds {thresholds['version']!r}, not {version!r}")
+    cutoffs = thresholds["units"][unit]["cutoffs"]
+    return int(score_au(np.asarray(value), cutoffs, AU_SCORE_RISES[unit]))
 
 
 def _ocular_frame(
