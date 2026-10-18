@@ -6,7 +6,9 @@ Run from the repo root.
 - `uv sync --group train --group dev` adds the research track's dependencies.
 - `cp .example.env .env` and set a real password before anything else. `make` targets read `.env`; outside `make`, `source .env`.
 - `make db` starts the compose Postgres on localhost:5433. The backend and the tests need it.
-- `make test` (or `uv run pytest` after `source .env`) runs the whole suite.
+- `make test` (or `uv run pytest` after `source .env`) runs every suite except `tests/e2e`.
+- `make test-e2e` builds the image, starts the compose stack as project `kittyface-e2e` on port 18091 with its own volume, drives it in Chromium, and removes the stack and volume afterwards. Run `uv run playwright install chromium` once first.
+- `uv run python scripts/05_score_image.py tests/e2e/fixtures/cats --out /tmp/overlays --json tests/e2e/expected.json` regenerates the Python predictions the E2E tests compare against. Rerun it after changing the models, the thresholds or `tests/e2e/fixtures/cats`.
 - `uv run pytest tests/backend/test_api.py` runs one test file.
 - `uv run uvicorn backend.main:app --reload --port 8091` starts the API.
 - `uv run python scripts/<script>.py` runs a research track script.

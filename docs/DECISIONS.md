@@ -71,3 +71,17 @@ The tests run against Postgres, with no skipped Postgres test. `tests/backend/co
 
 `.example.env` is the committed template; `.env` holds the real values and is ignored by git and Docker. Every line is `export KEY=value`, which `source .env`, GNU make's `include` and docker compose all parse, so one file feeds the shell, `make` targets and compose. `DATABASE_URL` is built inside the file from `${POSTGRES_USER}`, `${POSTGRES_PASSWORD}` and `${POSTGRES_DB}`, and all three readers expand that. The compose app service builds its own URL from the same variables with the host `db`, and the `db` service uses `${VAR:?}`, so compose fails naming the missing variable instead of starting Postgres with a blank password. `tests/backend/conftest.py` creates its throwaway database on the server `DATABASE_URL` names, so the tests carry no credentials either. We use a hex password, so it needs no URL escaping.
 
+## E2E tests compare the live app with the Python pipeline
+
+`tests/e2e` drives the compose stack in Chromium through `pytest-playwright`. Each test uploads a photo, saves it, and reads the stored record back from `/api/v1/uploads/<id>`, so the checks run on what the service keeps. The golden predictions in `tests/e2e/expected.json` come from `scripts/05_score_image.py --json`, which runs OpenVINO on the tflite models. The browser runs onnxruntime-web on the ONNX exports. A test fails if the two disagree beyond a tolerance, if Python's `kittyface.core.geometry` gives different ratios or scores from the browser's own landmarks (to 1e-6), or if the Measurements table shows something other than the stored record. Further tests cover a dragged landmark, EXIF orientation 6 with the metadata stripped, and the History open and delete flow.
+
+The fixtures in `tests/e2e/fixtures/cats` are the product owner's Pixel photos, scaled to a 1280 px long side and re-encoded without metadata, which drops the GPS tags. `cat1_exif6.jpg` stores `cat1.jpg` turned 90° counterclockwise with a hand-written EXIF orientation 6. `cv2.imread` applies that orientation, so its golden predictions are upright like the browser's.
+
+We set the tolerances from the measured spread on cat1 to cat7: mean landmark error at most 0.35% of the outer-eye-corner distance, max 1.5%, box IoU at least 0.991, ratio differences up to 0.0135 and whisker up to 0.95°. The limits sit at about twice that: 1% mean, 3% max, IoU 0.98, 0.02 for ear, 0.01 for orbital and muzzle, 1.5° for whisker. A test skips the score comparison when the golden ratio lies within the tolerance of a cutoff.
+
+cat8 fails these limits. Its orbital ratio comes out 0.913 in the browser and 0.872 in Python, on either side of the 0.903 cutoff, so the app shows score 0 where Python gives 1. The two pipelines resize differently: `cv2.resize` with `INTER_LINEAR` aliases on a 5.7× downscale, and canvas `drawImage` smooths. cat8 carries a strict `xfail`, so the suite turns red once someone aligns the resizing and the xfail can go.
+
+No test covers "No cat face found". The localizer has no confidence output and returned a box for black, grey, white and noise images, so no real photo reaches that branch.
+
+`docker-compose.yaml` takes `APP_PORT` and `DB_PORT` with the old ports as defaults, so the E2E stack runs beside a dev stack. `make test` skips `tests/e2e` through `norecursedirs`, because the suite needs Docker, a browser and about 75 seconds after the first image build.
+

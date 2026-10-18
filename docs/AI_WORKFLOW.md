@@ -61,3 +61,10 @@
 - The `kittyface-pg` volume had been created with the old hard-coded password, and Postgres ignores `POSTGRES_PASSWORD` on an existing volume, so the session ran `ALTER USER` to match `.env`. The old password is refused now.
 - Checked: `make test` gave 29 passed. `source .env` connects. `docker compose up --build` served `/api/v1/config` with 200. Without `.env`, `docker compose config` fails naming each missing variable.
 
+
+## E2E tests with Playwright (2026-10-18)
+
+- The main session planned and built `tests/e2e` directly at the product owner's request, with no issue file. The first plan proposed HTTP-only integration tests. The product owner rejected it in favour of Playwright tests that compare the live app with the Python pipeline, picked `pytest-playwright`, and supplied the photos.
+- The supplied photos carried GPS tags and weighed 1.5 to 3.7 MB each. The session wrote metadata-free 1280 px copies to `tests/e2e/fixtures/cats` and left the originals in `tests/e2e/fixtures` uncommitted.
+- A probe run measured the browser-vs-Python spread per image before the session set any tolerance. It found the cat8 resize mismatch and showed that the localizer finds a "face" in blank images. Both are recorded in DECISIONS.md.
+- Checked: `make test-e2e` gave 12 passed and 1 xfailed in 75 s, with no `kittyface-e2e` volume left behind. `make test` gave 29 passed and collected nothing from `tests/e2e`.
