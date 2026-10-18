@@ -23,7 +23,7 @@ from kittyface.core.geometry import (
 )
 from kittyface.core.graph import Edge, build_cat_edges
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[1]
 MIN_SIDE = 32
 LANDMARK_MARGIN = 0.1  # HF model card: "face box + 0.1 margin" — exact split unconfirmed
 
