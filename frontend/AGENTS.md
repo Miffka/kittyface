@@ -16,7 +16,7 @@ Run from `frontend/`.
 ## Architecture
 
 - Every backend call goes through `src/api/client.ts`, which picks the HTTP or in-memory mock service — keeps the app runnable without a backend.
-- `src/ml/` and `src/geometry/` are placeholder modules with fixed signatures; UI never resizes images or computes ratios — real code drops in later without UI changes.
+- `src/ml/` and `src/geometry/` keep fixed signatures; UI never resizes images or computes ratios. `src/geometry/measurements.ts` is a hand port of `kittyface.core.geometry`'s AU metrics; change both together, and the parity test in `src/test/geometry-detection.test.ts` pins the Python values.
 - `src/ml/`, `src/geometry/`, `src/api/` contain no UI code and no `any` — they're swapped/maintained independently.
 - localStorage holds only the client token and accepted notice version — privacy requirement from the spec.
 
