@@ -3,11 +3,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: KittyFace on EC2
 
-Parameters:
-  AmiId:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
-
 Resources:
   Repo:
     Type: AWS::ECR::Repository
@@ -63,7 +58,9 @@ Resources:
       InstanceType: t3.micro
       # Throttle at the baseline instead of billing for surplus CPU credits.
       CreditSpecification: { CPUCredits: standard }
-      ImageId: !Ref AmiId
+      # Pinned: a new AMI replaces the instance and wipes Postgres, which lives on its root volume.
+      # Ubuntu 24.04 in eu-central-1; the latest is at SSM /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+      ImageId: ami-04de259f26cbf4c1e
       IamInstanceProfile: !Ref Profile
       SecurityGroupIds: [!GetAtt WebSG.GroupId]
       BlockDeviceMappings:
