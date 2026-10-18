@@ -1,12 +1,12 @@
 # APP-8: show the proxy scores
 
-Groomed retrospectively from the [APP-8 entry](../backlog.md#app-8-show-the-proxy-scores). Status: delivered (partial). The cutoffs are mock values.
+Groomed retrospectively from the [APP-8 entry](../backlog.md#app-8-show-the-proxy-scores). Status: delivered (partial). The cutoffs come from RSCH-5's `models/thresholds.json`, and no test yet places a ratio exactly at a cutoff.
 
 **Story.** As a user, I want each ratio turned into a 0-2 proxy score that is clearly marked as unvalidated.
 
 **Scope.**
 - `frontend/src/geometry/measurements.ts` `scoreRatio(ratio, rule)`: two cutoffs and a direction (`ascending` or `descending`) give 0, 1 or 2. A ratio equal to the lower ascending cutoff scores 1; equal to the upper cutoff scores 2. For descending rules, equal to the upper cutoff scores 1 and equal to the lower cutoff scores 2.
-- Cutoffs come from `GET /config` (`backend/store.py` `CONFIG`, version `mock-thresholds-0.1.0`) and are never hard-coded in the UI.
+- Cutoffs come from `GET /config` and are never hard-coded in the UI. `backend/store.py` builds `CONFIG` from `models/thresholds.json` (version `fgs-manual-1.0.0`). The mock API in `frontend/src/api/mock.ts` holds a copy, since Vite's dev server can't load files outside `frontend/`, and `mock-api.test.ts` fails if the copy drifts from the file.
 - `frontend/src/lib/units.ts`: labels "Ear position (proxy)", "Orbital tightening (proxy)", "Muzzle tension (proxy)", "Whisker change (proxy, measures whisker pads)". Head position always reads "Not possible to score".
 - `frontend/src/components/Layout.tsx` `Banner`: a persistent note, "Research tool. These are geometric proxy measurements, not a medical or welfare assessment."
 - `ResultsPanel.tsx` shows no total. It prints the model, threshold and geometry versions under the table. Saved uploads store all three.
@@ -22,5 +22,4 @@ Groomed retrospectively from the [APP-8 entry](../backlog.md#app-8-show-the-prox
 **Depends on.** [APP-7](APP-7.md).
 
 **Out of scope.**
-- Cutoffs derived from data in `models/thresholds.json`: [RSCH-5](../backlog.md#rsch-5-e5-threshold-derivation-for-the-0-2-proxy-scores). Open in [APP-8 in the backlog](../backlog.md#app-8-show-the-proxy-scores).
-- A test that places a ratio exactly at each cutoff. The existing test uses values away from the cutoffs.
+- A test that places a ratio exactly at each cutoff. The existing test uses values away from the cutoffs. Open in [APP-8 in the backlog](../backlog.md#app-8-show-the-proxy-scores).

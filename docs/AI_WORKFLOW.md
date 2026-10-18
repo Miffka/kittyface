@@ -21,4 +21,5 @@
 - Issue: [issues/RSCH-5.md](issues/RSCH-5.md). The main session wrote it after implementing, so no PM grooming preceded the work.
 - Delivered: `scripts/04_fit_thresholds.py`, `models/thresholds.json` (`fgs-manual-1.0.0`), `geometry.score_ratio`, its tests in `tests/test_geometry.py`, and a fix to `scripts/02_detect_landmarks.py`'s `ROOT`, which pointed into `scripts/`. `AU_SCORE_RISES` now uses the frontend's unit keys (`ear`, `whisker`).
 - The fit, the per-AU agreement and the whisker/muzzle correlation (r = -0.41, n = 13), with its About-page wording, are in [DECISIONS.md](DECISIONS.md#fgs-proxy-cutoffs-come-from-the-fgs-training-manual-version-fgs-manual-100-rsch-5).
-- Open: the frontend mock and `backend/store.py` still serve `mock-thresholds-0.1.0`, and APP-8 switches them. Orbital (1/3) and whisker (1/3) need better metrics or more labeled photos.
+- Follow-up at the product owner's request: the app now serves `fgs-manual-1.0.0`. `backend/store.py` loads `models/thresholds.json`, the frontend mock holds a copy guarded by a sync test, and the demo seed ratios moved to still score 0, 1 and 2.
+- Open: orbital (1/3) and whisker (1/3) need better metrics or more labeled photos.

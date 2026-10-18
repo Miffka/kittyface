@@ -5,7 +5,7 @@ Groomed retrospectively. New ID, not in the original backlog. Status: delivered.
 **Story.** As a developer, I want a known token with saved uploads, so I can see the History pages populated without creating data first.
 
 **Scope.**
-- `backend/store.py` `DEMO_TOKEN` is 32 zeros. `seed` writes a consent record for it and three uploads (`seed-1` to `seed-3`) with a generated PNG, 48 placed landmarks and scores of all 0, all 1 and all 2. Creation dates are 3, 2 and 1 days ago.
+- `backend/store.py` `DEMO_TOKEN` is 32 zeros. `seed` writes a consent record for it and three uploads (`seed-1` to `seed-3`) with a generated PNG, 48 placed landmarks and scores of all 0, all 1 and all 2. The stored ratios produce those scores under `models/thresholds.json` (`fgs-manual-1.0.0`), so a refit can leave them inconsistent. Creation dates are 3, 2 and 1 days ago.
 - `seed` runs on every start through `session.merge`, so repeated starts do not duplicate rows.
 - To use it, paste the token into the frontend's localStorage key `cfs.client_token`.
 

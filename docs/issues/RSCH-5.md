@@ -24,7 +24,6 @@ Groomed from the [RSCH-5 entry](../backlog.md#rsch-5-e5-threshold-derivation-for
 **Depends on.** Nothing outstanding.
 
 **Out of scope.**
-- Switching the frontend mock and `backend/store.py` from `mock-thresholds-0.1.0` to `models/thresholds.json` belongs to [APP-8](APP-8.md).
 - Better orbital and whisker metrics. See the notes below.
 
 **Engineer notes.**
@@ -39,4 +38,5 @@ Groomed from the [RSCH-5 entry](../backlog.md#rsch-5-e5-threshold-derivation-for
 - Orbital separates score 2 but swaps scores 0 and 1, which sit 0.007 apart. Whisker scores its score-2 photo at the same angle as its score-0 photo, and its two cutoffs sit 0.03° apart, so in practice a whisker score is 0 or 2. All four AUs stay scoreable. DECISIONS.md flags orbital and whisker as weak on this data.
 - Whisker/muzzle correlation: r = -0.41, 95% CI -0.79 to 0.18, n = 13. The interval includes zero.
 - Midpoints between single-photo means are the most this data supports. The code carries a `ponytail:` note to switch to ordinal regression once more labeled photos exist.
-- Tests: `uv run pytest` reports 20 passed, and `ruff check` and `mypy` are clean. No QA pass ran.
+- Follow-up at the product owner's request: the app now serves these cutoffs instead of `mock-thresholds-0.1.0`. `backend/store.py` loads `models/thresholds.json` for `GET /config`. `frontend/src/api/mock.ts` holds a copy, guarded by a sync test in `mock-api.test.ts`. The demo seed ratios moved so the three seed uploads still score all 0, all 1 and all 2. See [APP-8](APP-8.md) and [APP-26](APP-26.md).
+- Tests: `uv run pytest` reports 20 passed and `bun --bun run test` 24 passed. `ruff check`, `mypy` and `tsc` are clean. No QA pass ran.
