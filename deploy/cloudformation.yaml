@@ -1,0 +1,151 @@
+# KittyFace on one free-tier t3.micro: the app, Postgres and Caddy (HTTPS on <ip>.sslip.io) in docker compose.
+# deploy/deploy.sh creates the stack, pushes the image to the ECR repo and starts compose over SSM.
+AWSTemplateFormatVersion: "2010-09-09"
+Description: KittyFace on EC2
+
+Parameters:
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+
+Resources:
+  Repo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref AWS::StackName
+      EmptyOnDelete: true
+      # The free tier covers 500 MB of storage.
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {"rules": [{"rulePriority": 1, "description": "keep the last 3 images",
+            "selection": {"tagStatus": "any", "countType": "imageCountMoreThan", "countNumber": 3},
+            "action": {"type": "expire"}}]}
+
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  Profile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref Role]
+
+  WebSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: HTTP and HTTPS only; the shell is SSM
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+
+  IP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  IPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt IP.AllocationId
+      InstanceId: !Ref Instance
+
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      # Throttle at the baseline instead of billing for surplus CPU credits.
+      CreditSpecification: { CPUCredits: standard }
+      ImageId: !Ref AmiId
+      IamInstanceProfile: !Ref Profile
+      SecurityGroupIds: [!GetAtt WebSG.GroupId]
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs: { VolumeSize: 20, VolumeType: gp3 }
+      Tags:
+        - { Key: Name, Value: !Ref AWS::StackName }
+      # Runs once, on first boot. Compose is started by deploy.sh once the image is in ECR.
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            set -euxo pipefail
+
+            fallocate -l 2G /swapfile
+            chmod 600 /swapfile
+            mkswap /swapfile
+            swapon /swapfile
+            echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+            apt-get update
+            apt-get install -y docker.io docker-compose-v2 amazon-ecr-credential-helper
+            mkdir -p /root/.docker
+            echo '{"credsStore": "ecr-login"}' > /root/.docker/config.json
+
+            mkdir -p /opt/kittyface
+            cd /opt/kittyface
+            cat > .env <<EOF
+            IMAGE=${RepoUri}:latest
+            HOST=${IP}.sslip.io
+            POSTGRES_PASSWORD=$(openssl rand -hex 16)
+            EOF
+            chmod 600 .env
+
+            echo '{$HOST} {
+              reverse_proxy app:8091
+            }' > Caddyfile
+
+            cat > compose.yaml <<'EOF'
+            services:
+              app:
+                image: ${!IMAGE}
+                restart: unless-stopped
+                environment:
+                  DATABASE_URL: postgresql+psycopg://kittyface:${!POSTGRES_PASSWORD}@db/kittyface
+                depends_on:
+                  db:
+                    condition: service_healthy
+              db:
+                image: postgres:17
+                restart: unless-stopped
+                environment:
+                  POSTGRES_USER: kittyface
+                  POSTGRES_PASSWORD: ${!POSTGRES_PASSWORD}
+                  POSTGRES_DB: kittyface
+                volumes:
+                  - pg:/var/lib/postgresql/data
+                healthcheck:
+                  test: ["CMD", "pg_isready", "-U", "kittyface"]
+                  interval: 2s
+                  retries: 15
+              caddy:
+                image: caddy:2
+                restart: unless-stopped
+                ports:
+                  - "80:80"
+                  - "443:443"
+                environment:
+                  HOST: ${!HOST}
+                volumes:
+                  - ./Caddyfile:/etc/caddy/Caddyfile:ro
+                  - caddy:/data
+            volumes:
+              pg:
+              caddy:
+            EOF
+          - RepoUri: !GetAtt Repo.RepositoryUri
+
+Outputs:
+  Url:
+    Value: !Sub https://${IP}.sslip.io
+  InstanceId:
+    Value: !Ref Instance
+  RepositoryUri:
+    Value: !GetAtt Repo.RepositoryUri

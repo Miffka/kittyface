@@ -1,4 +1,4 @@
-.PHONY: run backend frontend db test test-e2e docker-build docker-up docker-down
+.PHONY: run backend frontend db test test-e2e docker-build docker-up docker-down deploy
 
 # .env (from .example.env) exports DATABASE_URL to every target.
 -include .env
@@ -34,3 +34,7 @@ docker-up:
 
 docker-down:
 	docker compose down
+
+# The CloudFormation stack (STACK, default kittyface) in the AWS CLI's configured account and region; prints the https URL.
+deploy:
+	./deploy/deploy.sh
