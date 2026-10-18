@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createMockApi, MOCK_CONFIG } from "@/api/mock";
 import { ApiError } from "@/api/errors";
-import { detectLandmarks } from "@/ml/detection";
 import { GEOMETRY_VERSION, measure } from "@/geometry/measurements";
 import type { UploadMetadata } from "@/api/types";
 
 async function metadata(): Promise<UploadMetadata> {
   const box = { x: 0, y: 0, width: 100, height: 100 };
-  const lm = await detectLandmarks({ width: 200, height: 200 } as ImageBitmap, box);
+  const lm = Array.from({ length: 48 }, (_, i) => ({ x: i, y: 2 * i }));
   const xy = lm.map((p): [number, number] => [p.x, p.y]);
   const m = measure(lm, MOCK_CONFIG.thresholds);
   return {

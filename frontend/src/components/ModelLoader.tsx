@@ -13,7 +13,7 @@ export function ModelLoader() {
         </div>
         <Progress value={models.progress * 100} />
         <p className="mt-2 text-xs text-muted-foreground">
-          The first load downloads about 26 MB and is faster on Wi-Fi.
+          The first load downloads about 55 MB and is faster on Wi-Fi.
         </p>
       </div>
     );
