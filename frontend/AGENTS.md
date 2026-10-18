@@ -4,7 +4,7 @@ Run from `frontend/`.
 
 - `bun install` installs dependencies.
 - `bun --bun run dev` starts the dev server on http://localhost:8080.
-- `bun --bun run build` builds the app.
+- `bun --bun run build` builds the app in SPA mode. The backend serves `.output/public`, which holds the assets and the `_shell.html` shell.
 - `bun --bun run test` runs the tests.
 - Set `VITE_USE_MOCK_API=true` to run without a backend.
 

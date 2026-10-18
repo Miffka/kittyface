@@ -23,3 +23,11 @@
 - The fit, the per-AU agreement and the whisker/muzzle correlation (r = -0.41, n = 13), with its About-page wording, are in [DECISIONS.md](DECISIONS.md#fgs-proxy-cutoffs-come-from-the-fgs-training-manual-version-fgs-manual-100-rsch-5).
 - Follow-up at the product owner's request: the app now serves `fgs-manual-1.0.0`. `backend/store.py` loads `models/thresholds.json`, the frontend mock holds a copy guarded by a sync test, and the demo seed ratios moved to still score 0, 1 and 2.
 - Open: orbital (1/3) and whisker (1/3) need better metrics or more labeled photos.
+
+## Docker image for the app (2026-10-18)
+
+- The main session planned and implemented the image directly at the product owner's request, with no PM, Engineer or QA subagents and no issue file. The work prepares APP-23 but doesn't deliver it: provisioning, swap and migrations stay open.
+- Delivered in four commits: SPA mode for the frontend build, static serving with a shell fallback in `backend/main.py` plus `tests/backend/test_frontend.py`, the `Dockerfile` and `.dockerignore`, and these docs.
+- The first fallback caught `fastapi.HTTPException`, which subclasses Starlette's, so Starlette's 404 slipped past it. The new test caught it before the commit.
+- Checked by hand: `docker build` and `docker run`, then curl against `/`, `/history/x`, `/api/v1/config`, `/api/v1/nope`, a `.wasm` asset (served as `application/wasm`) and an ONNX model. Nobody has clicked through the app in a browser against the container yet.
+- Decision record: [DECISIONS.md](DECISIONS.md#one-image-and-the-backend-serves-the-spa-build).
