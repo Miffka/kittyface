@@ -15,6 +15,9 @@ These already exist in `src/kittyface/core/` and are referenced by later tasks. 
 - **RSCH-3** (E3): hand-authored anatomical adjacency and its GCN normalization, plus a random-adjacency control. `graph.py`.
 - **RSCH-4** (E4): yaw estimators (foreshortening ratio, midline offset) and the superseded centroid proxy. `geometry.yaw_*`.
 - **RSCH-6** (export): tflite to ONNX conversion checked against OpenVINO-on-tflite on local CatFLW fixtures. `scripts/03_export_onnx.py`; groomed issue and QA verdict in [docs/issues/RSCH-6.md](issues/RSCH-6.md).
+- **APP-25**: frontend API service layer with an in-memory mock and status-to-message mapping. [docs/issues/APP-25.md](issues/APP-25.md).
+- **APP-26**: demo seed data under `DEMO_TOKEN`. [docs/issues/APP-26.md](issues/APP-26.md).
+- **APP-27**: consent dialog re-opens on any 403. [docs/issues/APP-27.md](issues/APP-27.md).
 
 ## Research track
 
