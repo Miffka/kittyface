@@ -15,7 +15,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY backend backend
 COPY models/thresholds.json models/
 COPY --from=frontend /app/frontend/.output/public frontend/.output/public
-# ponytail: SQLite on a volume; APP-20 moves production to Postgres.
+# SQLite on a volume by default; set DATABASE_URL to a postgresql+psycopg:// URL for Postgres.
+# backend.main runs the migrations on start.
 ENV DATABASE_URL=sqlite:////app/data/kittyface.db
 RUN mkdir data
 VOLUME /app/data

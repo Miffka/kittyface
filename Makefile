@@ -10,7 +10,7 @@ backend:
 frontend:
 	cd frontend && bun --bun run dev
 
-# Creates the tables and demo seed in $DATABASE_URL (default ./kittyface.db).
+# Runs the migrations and writes the demo seed in $DATABASE_URL (default ./kittyface.db).
 db:
 	uv run python -c "import backend.main"
 
