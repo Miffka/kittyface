@@ -1,21 +1,27 @@
-Delivers the backend, storage, frontend, deploy, observability.
+# Project process
 
-Documents
-- /backend - the backend files
-- /frontend - the frontend files
+This process delivers the backend, storage, frontend, deploy and observability.
 
-- PM — grooms a task before implementation, follows `docs/team/pm.md`
-- Engineer — implements one groomed task, follows
-  `docs/team/software-engineer.md`
-- QA — checks the result against acceptance criteria, follows
-  `docs/team/qa-engineer.md`
+## Documents
 
-Orchestrator
+- [backend/AGENTS.md](../backend/AGENTS.md) and [backend/README.md](../backend/README.md) cover the backend
+- [frontend/AGENTS.md](../frontend/AGENTS.md) and [frontend/README.md](../frontend/README.md) cover the frontend
+- [backlog.md](backlog.md) is the backlog, tagged by track
+- [AI_WORKFLOW.md](AI_WORKFLOW.md) and [DECISIONS.md](DECISIONS.md) are graded and cover both tracks. Write to them as the work happens, not at the end.
 
-The main session is the orchestrator. It launches PM, Engineer, and QA
-as subagents. It does not groom, implement, or test itself.
+## Roles
 
-Lifecycle
+- PM grooms a task before implementation, follows [team/pm.md](team/pm.md)
+- Engineer implements one groomed task, follows [team/software-engineer.md](team/software-engineer.md)
+- QA checks the result against acceptance criteria, follows [team/qa-engineer.md](team/qa-engineer.md)
+
+## Orchestrator
+
+The main session is the orchestrator for whichever track it runs. It launches PM, Engineer and QA as subagents. It does not groom, implement, test or review itself.
+
+The orchestrator does not mix the two tracks' lifecycles in one loop. Pick a track, run its lifecycle to completion or to its next natural stopping point, then switch.
+
+## Lifecycle
 
 1. Pick the next open issue, milestone order first
 2. PM grooms it
@@ -25,7 +31,7 @@ Lifecycle
 6. On PASS, close the issue
 7. Repeat until the milestone's issues are empty, then move to the next milestone
 
-Rules
+## Rules
 
 - Do not skip step 2
 - The engineer does not close the issue

@@ -1,23 +1,6 @@
-Commands
-
-uv sync - install runtime + dev deps
-uv sync --group train --group dev - add the research track's deps (tf2onnx, tensorflow-cpu)
-uv run pytest - the whole app-track suite
-uv run pytest tests/test_smoke.py - one test file
-uv run python manage.py migrate - apply database migrations
-uv run python scripts/<script>.py - research track scripts
-
-Rules
-
-- Dependencies are added in pyproject.toml. Do not add one without asking.
-
-Documents
-
-- `docs/project_process.md` - the process of development by the agents
-- `docs/backlog.md` — the backlog, tagged by track
-- `docs/AI_WORKFLOW.md`, `docs/DECISIONS.md` — graded, both tracks
-  write to these as they go, not at the end
-
-Orchestrator
-
-The main session is the orchestrator for whichever track it's currently running. It never grooms, implements, tests, or reviews itself — that's what the subagents in each track's role docs are for. It does not mix the two tracks' lifecycles in one loop: pick a track, run that track's process file's lifecycle to completion or to its next natural stopping point, then switch.
+- [backend/AGENTS.md](backend/AGENTS.md) - backend commands, rules and notes
+- [frontend/AGENTS.md](frontend/AGENTS.md) - frontend commands, rules and architecture
+- [docs/project_process.md](docs/project_process.md) - the development process: orchestrator, lifecycle, roles, rules
+- [docs/backlog.md](docs/backlog.md) - the backlog, tagged by track
+- [docs/AI_WORKFLOW.md](docs/AI_WORKFLOW.md) - the AI workflow log
+- [docs/DECISIONS.md](docs/DECISIONS.md) - the decision log
