@@ -1,0 +1,10 @@
+.git
+**/node_modules
+**/__pycache__
+.venv
+.*_cache
+data
+*.db
+frontend/.output
+frontend/dist
+models/*.tflite
