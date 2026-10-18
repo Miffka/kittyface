@@ -11,7 +11,7 @@ The orchestrator picks one track, runs `docs/project_process.md`'s lifecycle to 
 These already exist in `src/kittyface/core/` and are referenced by later tasks. Listed here only so the numbering below makes sense.
 
 - **RSCH-1** (E0/E1): landmark ingestion and Procrustes shape space. `geometry.procrustes_align` and `generalized_procrustes`.
-- **RSCH-2** (E2): derived-geometry readouts. `geometry.eye_aspect_ratio`, `ear_angle`, `muzzle_spread_ratio`.
+- **RSCH-2** (E2): derived-geometry readouts, since redefined on the named landmark legend: `geometry.ear_spread_ratio`, `eye_opening_ratio`, `muzzle_roundness`, `whisker_elevation`, plus `score_au` for the 0-2 step.
 - **RSCH-3** (E3): hand-authored anatomical adjacency and its GCN normalization, plus a random-adjacency control. `graph.py`.
 - **RSCH-4** (E4): yaw estimators (foreshortening ratio, midline offset) and the superseded centroid proxy. `geometry.yaw_*`.
 - **RSCH-6** (export): tflite to ONNX conversion checked against OpenVINO-on-tflite on local CatFLW fixtures. `scripts/03_export_onnx.py`; groomed issue and QA verdict in [docs/issues/RSCH-6.md](issues/RSCH-6.md).
@@ -23,7 +23,7 @@ These already exist in `src/kittyface/core/` and are referenced by later tasks. 
 
 ### RSCH-5 (E5): threshold derivation for the 0-2 proxy scores
 
-**Problem.** Each FGS action unit needs a 0-2 proxy score, but nothing yet turns a raw ratio (ear angle, eye aspect ratio, muzzle spread, whisker-pad displacement) into that score. The cutoffs have to come from data, and every future result has to record which cutoff version scored it.
+**Problem.** Each FGS action unit needs a 0-2 proxy score, but nothing yet turns a raw ratio (`ear_spread_ratio`, `eye_opening_ratio`, `muzzle_roundness`, `whisker_elevation`) into that score. The cutoffs have to come from data, and every future result has to record which cutoff version scored it.
 
 **Scope.**
 - A script under `scripts/` that fits 0-2 cutoffs per AU ratio from a labeled dataset and writes `models/thresholds.json`, versioned (a version field plus one entry per AU).
@@ -32,7 +32,7 @@ These already exist in `src/kittyface/core/` and are referenced by later tasks. 
 
 **Acceptance criteria.**
 - [ ] `models/thresholds.json` exists, has a version field, and has one cutoff set per AU (ear position, orbital tightening, muzzle tension, whisker change).
-- [ ] Given a ratio value and a threshold version, a function returns the correct 0-2 score for values at, just below, and just above each cutoff.
+- [ ] Given a ratio value and a threshold version, a function (reading cutoffs into `geometry.score_au`, direction from `AU_SCORE_RISES`) returns the correct 0-2 score for values at, just below, and just above each cutoff.
 - [ ] The whisker/muzzle correlation number is written down somewhere `docs/AI_WORKFLOW.md` or a linked note can point the About-page copy at.
 - [ ] Re-scoring the same landmarks against a new threshold version does not require re-running detection.
 
@@ -120,7 +120,7 @@ This is a Scrum product backlog, not a build plan by layer: stories are ordered 
 
 **Story.** As a user, I want to see each action unit's raw geometric ratio for both the detected and my corrected landmarks, so I can see what the app actually measures before it turns that into a score.
 
-**Scope.** A hand-written TypeScript port of `kittyface.core.geometry`'s ratio functions (eye aspect ratio, ear angle, muzzle spread, yaw estimators), not a transpile. Display the raw number per AU for both landmark sets.
+**Scope.** A hand-written TypeScript port of `kittyface.core.geometry`'s ratio functions (`ear_spread_ratio`, `eye_opening_ratio`, `muzzle_roundness`, `whisker_elevation`, yaw estimators), not a transpile. Display the raw number per AU for both landmark sets.
 
 **Acceptance criteria.**
 - [ ] Each scoreable AU shows a raw ratio for the model landmarks and, once edited, for the user-corrected landmarks.

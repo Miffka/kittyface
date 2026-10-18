@@ -17,7 +17,7 @@ EAR = LEFT_EAR + RIGHT_EAR
 MUZZLE = tuple(i for i in range(48) if i not in EYE and i not in EAR)
 
 # Node identities from the hand-authored legend at the head of
-# `models/graph_edge_schemes/graph_edges_manual_v3.txt`. Each pair is
+# `models/graph_edge_schemes/graph_edges_manual_v2.txt` (v3's is identical). Each pair is
 # (left, right) as that legend names them; 19 and 21 are named but are not a
 # matched pair and are excluded.
 BILATERAL_PAIRS = (
@@ -51,6 +51,18 @@ MIDLINE_POINTS = (16, 17, 0, 2)
 OCULAR_PAIR = (4, 8)
 PHILTRUM = 16
 CHIN = 2
+
+# FGS action-unit points, same legend. Eyes are (top, bottom, outside, inside);
+# whisker and muzzle vectors run (middle, outside), left side first.
+EAR_TIPS = (24, 29)
+LEFT_EYELID = (6, 7, 4, 5)
+RIGHT_EYELID = (10, 11, 8, 9)
+LEFT_WHISKER, RIGHT_WHISKER = (42, 32), (43, 35)
+LEFT_MUZZLE_SIDE, RIGHT_MUZZLE_SIDE = (33, 46), (34, 47)
+# Closed ring around the muzzle: nose top, right side, chin, left side.
+MUZZLE_OUTLINE = (12, 13, 35, 47, 19, 2, 21, 46, 32)
+# Whether each AU's 0-2 score rises with its raw metric (see `score_au`).
+AU_SCORE_RISES = {"ears": True, "orbital": False, "muzzle": False, "whiskers": True}
 
 
 def letterbox_square(image: np.ndarray, size: int) -> tuple[np.ndarray, float, int, int]:
@@ -170,41 +182,73 @@ def generalized_procrustes(
     return aligned, reference
 
 
-def eye_aspect_ratio(shape: np.ndarray, eye_indices: Sequence[int]) -> float:
-    """Eyelid opening / corner-to-corner span. The horizontal axis is the
-    pair of eye points farthest apart (robust to point ordering); the
-    vertical distance is the largest perpendicular offset of the remaining
-    points from that line."""
-    points = shape[list(eye_indices)]
-    dists = np.linalg.norm(points[:, None, :] - points[None, :, :], axis=-1)
-    i, j = np.unravel_index(np.argmax(dists), dists.shape)
-    horizontal = dists[i, j]
-    axis = points[j] - points[i]
-    normal = np.array([-axis[1], axis[0]]) / horizontal
-    vertical = np.abs((points - points[i]) @ normal).max()
-    return float(vertical / horizontal)
+def _span(shapes: np.ndarray, a: int, b: int) -> np.ndarray:
+    return np.linalg.norm(shapes[:, a] - shapes[:, b], axis=1)
 
 
-def ear_angle(
-    shape: np.ndarray,
-    ear_indices: Sequence[int],
-    left_eye_center: np.ndarray,
-    right_eye_center: np.ndarray,
-) -> float:
-    """Signed angle in degrees, base->tip vector vs the inter-ocular axis,
-    via atan2 of each vector's heading (positive = counter-clockwise from
-    the inter-ocular axis). Base/tip are the ear points nearest/farthest
-    from the eye-center midpoint."""
-    points = shape[list(ear_indices)]
-    midpoint = (np.asarray(left_eye_center) + np.asarray(right_eye_center)) / 2
-    dists_to_mid = np.linalg.norm(points - midpoint, axis=1)
-    base, tip = points[np.argmin(dists_to_mid)], points[np.argmax(dists_to_mid)]
-    ear_vec = tip - base
-    ocular_axis = np.asarray(right_eye_center) - np.asarray(left_eye_center)
-    angle = np.degrees(
-        np.arctan2(ear_vec[1], ear_vec[0]) - np.arctan2(ocular_axis[1], ocular_axis[0])
-    )
-    return float((angle + 180) % 360 - 180)
+def ear_spread_ratio(shapes: np.ndarray) -> np.ndarray:
+    """(N,48,2) -> (N,). Ears: ear-tip span over outer-eye-corner span.
+    Rises as the ears go from facing forward to pulled apart to rotated
+    outward. Both are bilateral spans, so yaw scales both by |cos(theta)|
+    (see `yaw_foreshortening_ratio`) and pitch leaves both alone; the
+    skull-anchored denominator does not move with the ears."""
+    return _span(shapes, *EAR_TIPS) / _span(shapes, *OCULAR_PAIR)
+
+
+def eye_opening_ratio(shapes: np.ndarray) -> np.ndarray:
+    """(N,48,2) -> (N,). Orbital tightening: eyelid top-bottom distance over
+    outside-inside corner distance, averaged over both eyes. Falls as the eyes
+    go from open to partly closed to squinted. Pupil points are left out:
+    dilation is not tightening. Confound: yaw shrinks the corner span and
+    inflates the ratio by 1/|cos(theta)|."""
+    ratios = [
+        _span(shapes, top, bottom) / _span(shapes, outside, inside)
+        for top, bottom, outside, inside in (LEFT_EYELID, RIGHT_EYELID)
+    ]
+    return (ratios[0] + ratios[1]) / 2
+
+
+def muzzle_roundness(shapes: np.ndarray) -> np.ndarray:
+    """(N,48,2) -> (N,). Muzzle tension: minor/major axis ratio of the
+    second-moment ellipse of `MUZZLE_OUTLINE`, sqrt(lambda_min/lambda_max) of
+    the points' covariance. 1 is round; falls as the muzzle goes elliptic.
+    Moments rather than `cv2.fitEllipse` keep the TypeScript port short.
+    Confound: pitch squashes it vertically, yaw horizontally."""
+    points = shapes[:, list(MUZZLE_OUTLINE)]
+    centered = points - points.mean(axis=1, keepdims=True)
+    eigvals = np.linalg.eigvalsh(np.einsum("nki,nkj->nij", centered, centered))
+    return np.sqrt(eigvals[:, 0] / eigvals[:, 1])
+
+
+def _signed_angle(shapes: np.ndarray, base: tuple[int, int], vec: tuple[int, int]) -> np.ndarray:
+    """Degrees from the base vector to `vec`, each (from, to) indices;
+    positive is clockwise on screen (image y points down)."""
+    b = shapes[:, base[1]] - shapes[:, base[0]]
+    v = shapes[:, vec[1]] - shapes[:, vec[0]]
+    cross = b[:, 0] * v[:, 1] - b[:, 1] * v[:, 0]
+    return np.degrees(np.arctan2(cross, (b * v).sum(axis=1)))
+
+
+def whisker_elevation(shapes: np.ndarray) -> np.ndarray:
+    """(N,48,2) -> (N,). Whisker change: angle in degrees from the muzzle
+    side (middle->outside) to the whisker pad (middle->outside), mirrored so
+    that a pad tilted upward from the muzzle is positive on both sides, then
+    averaged. Rises as the whiskers go from pointing down, to level with the
+    muzzle, to pointing up. A relative angle, so head roll cancels. Level is
+    not pinned to 0 degrees: where score 1 sits is the cutoffs' job."""
+    left = _signed_angle(shapes, LEFT_MUZZLE_SIDE, LEFT_WHISKER)
+    right = _signed_angle(shapes, RIGHT_MUZZLE_SIDE, RIGHT_WHISKER)
+    return (left - right) / 2
+
+
+def score_au(value: np.ndarray, cutoffs: Sequence[float], rises: bool = True) -> np.ndarray:
+    """0-2 score from a raw AU metric and ascending cutoffs (c1, c2) in the
+    metric's units. `rises` comes from `AU_SCORE_RISES`: True scores 1 above
+    c1 and 2 above c2; False scores 1 below c2 and 2 below c1. A value equal
+    to a cutoff stays in the lower score."""
+    if rises:
+        return np.searchsorted(cutoffs, value, side="left")
+    return len(cutoffs) - np.searchsorted(cutoffs, value, side="right")
 
 
 def _ocular_frame(
@@ -282,20 +326,3 @@ def yaw_centroid_proxy(shapes: np.ndarray) -> np.ndarray:
     dist_right = np.linalg.norm(muzzle_centroid - right_eye_centroid, axis=1)
     dist_left = np.linalg.norm(muzzle_centroid - left_eye_centroid, axis=1)
     return dist_right - dist_left
-
-
-def muzzle_spread_ratio(
-    shape: np.ndarray,
-    muzzle_indices: Sequence[int],
-    left_eye_center: np.ndarray,
-    right_eye_center: np.ndarray,
-) -> float:
-    """Geometry-only stand-in for whisker-pad spread: max pairwise distance
-    among the muzzle points, divided by inter-ocular distance. Not a named
-    whisker-pad index pair (no anatomical index map is published for these
-    points) and NOT a validated "tension" measure — see docs/backlog.md
-    RSCH-2 grooming notes."""
-    points = shape[list(muzzle_indices)]
-    spread = np.linalg.norm(points[:, None, :] - points[None, :, :], axis=-1).max()
-    ocular_dist = np.linalg.norm(np.asarray(right_eye_center) - np.asarray(left_eye_center))
-    return float(spread / ocular_dist)

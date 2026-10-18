@@ -18,11 +18,11 @@ Grimace Scale (FGS) from cat face landmarks.
 
 ## Action units
 
-5. **Ear position.** Ear base-to-tip angle against the inter-ocular axis.
+5. **Ear position.** Ear-tip span over outer-eye-corner span.
 6. **Orbital tightening.** Vertical eyelid distance over corner-to-corner distance.
-7. **Muzzle tension.** Aspect ratio of the muzzle outline.
-8. **Whisker change.** Forward displacement of the whisker pads relative to the
-   nose, labelled as measuring the pads. Its correlation with muzzle tension is
+7. **Muzzle tension.** Minor/major axis ratio of the muzzle outline's ellipse.
+8. **Whisker change.** Angle of the whisker pads against the muzzle sides,
+   labelled as measuring the pads. Its correlation with muzzle tension is
    reported on the About page.
 9. **Head position.** Always "not possible to score".
 
