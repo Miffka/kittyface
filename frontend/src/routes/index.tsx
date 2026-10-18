@@ -79,7 +79,13 @@ function About() {
       </Section>
 
       <Section title="Models and licence">
-        <p>TODO: model attribution (authors, dataset, version).</p>
+        <p>
+          The cat face localizer and landmark models are by Hugo Cornellier (
+          <a href="https://huggingface.co/hugocornellier/cat-face-landmarks" className="text-primary underline">
+            huggingface.co/hugocornellier/cat-face-landmarks
+          </a>
+          ), converted to ONNX for use in the browser.
+        </p>
         <p>The models are used under the Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC 4.0) licence.</p>
       </Section>
 
