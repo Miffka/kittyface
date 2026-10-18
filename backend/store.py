@@ -1,7 +1,9 @@
 """App config and demo seed data."""
 
+import json
 import math
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -10,19 +12,15 @@ from sqlalchemy.orm import Session
 from backend.db import Consent, Upload
 from backend.models import AppConfig, Box, Measurement, UploadMetadata
 
+# Written by scripts/04_fit_thresholds.py; its extra "fit" keys are ignored.
+THRESHOLDS = json.loads(
+    (Path(__file__).resolve().parents[1] / "models" / "thresholds.json").read_text()
+)
 CONFIG = AppConfig.model_validate(
     {
-        "threshold_version": "mock-thresholds-0.1.0",
+        "threshold_version": THRESHOLDS["version"],
         "notice_version": "2026-10-04",
-        "thresholds": {
-            "version": "mock-thresholds-0.1.0",
-            "units": {
-                "ear": {"cutoffs": [1.9, 2.2], "direction": "ascending"},
-                "orbital": {"cutoffs": [0.35, 0.55], "direction": "descending"},
-                "muzzle": {"cutoffs": [0.3, 0.4], "direction": "descending"},
-                "whisker": {"cutoffs": [10.0, 25.0], "direction": "ascending"},
-            },
-        },
+        "thresholds": THRESHOLDS,
     }
 )
 
@@ -37,9 +35,9 @@ def seed(session: Session) -> None:
     now = datetime.now(UTC)
     for i, (ratios, scores, color) in enumerate(
         [
-            ([1.7, 0.7, 0.45, 5.0], [0, 0, 0, 0], (80, 140, 200)),
-            ([2.0, 0.45, 0.35, 18.0], [1, 1, 1, 1], (120, 120, 120)),
-            ([2.4, 0.3, 0.25, 30.0], [2, 2, 2, 2], (40, 70, 110)),
+            ([1.6, 0.92, 0.45, 16.0], [0, 0, 0, 0], (80, 140, 200)),
+            ([1.85, 0.85, 0.40, 21.15], [1, 1, 1, 1], (120, 120, 120)),
+            ([2.2, 0.6, 0.36, 26.0], [2, 2, 2, 2], (40, 70, 110)),
         ]
     ):
         box = Box(x=40, y=30, width=240, height=200)
