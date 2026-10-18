@@ -3,7 +3,7 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export const CONTACT_EMAIL = "TODO-contact@example.org";
+export const CONTACT_EMAIL = "catfacestudiotm@gmail.com";
 export const BANNER_TEXT =
   "Research tool. These are geometric proxy measurements, not a medical or welfare assessment.";
 
