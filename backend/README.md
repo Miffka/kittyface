@@ -14,8 +14,8 @@ After `bun --bun run build` in `frontend/`, the backend serves `frontend/.output
 ## Docker
 
 ```sh
-docker build -t kittyface .
-docker run -p 8091:8091 -v kittyface-data:/app/data kittyface
+make docker-build   # docker build -t kittyface .
+make docker-run     # docker run --rm -p 8091:8091 -v kittyface-data:/app/data kittyface
 ```
 
 The `Dockerfile` builds the frontend in a Node stage, then copies the backend, `models/thresholds.json` and the frontend build into a Python image. The image keeps its SQLite database at `/app/data/kittyface.db`; mount a volume there to keep data across containers, or set `DATABASE_URL`.

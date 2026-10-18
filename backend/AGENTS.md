@@ -8,7 +8,7 @@ Run from the repo root.
 - `uv run pytest tests/backend/test_api.py` runs one test file.
 - `uv run uvicorn backend.main:app --reload --port 8091` starts the API.
 - `uv run python scripts/<script>.py` runs a research track script.
-- `docker build -t kittyface .` builds the app image; `docker run -p 8091:8091 -v kittyface-data:/app/data kittyface` runs it.
+- `make docker-build` builds the app image; `make docker-run` runs it on port 8091 with the database in the `kittyface-data` volume.
 
 ## Rules
 
