@@ -13,10 +13,10 @@ export const MOCK_CONFIG: AppConfig = {
   thresholds: {
     version: "mock-thresholds-0.1.0",
     units: {
-      ear: { cutoffs: [1.0, 1.3], direction: "descending" },
-      orbital: { cutoffs: [0.3, 0.42], direction: "descending" },
-      muzzle: { cutoffs: [0.42, 0.5], direction: "ascending" },
-      whisker: { cutoffs: [1.1, 1.25], direction: "ascending" },
+      ear: { cutoffs: [1.9, 2.2], direction: "ascending" },
+      orbital: { cutoffs: [0.35, 0.55], direction: "descending" },
+      muzzle: { cutoffs: [0.3, 0.4], direction: "descending" },
+      whisker: { cutoffs: [10.0, 25.0], direction: "ascending" },
     },
   },
 };
@@ -38,20 +38,26 @@ export function createMockApi(options: { latencyMs?: number } = {}): MockApi {
   let counter = 0;
 
   const delay = (): Promise<void> =>
-    latency > 0 ? new Promise((r) => setTimeout(r, latency)) : Promise.resolve();
+    latency > 0
+      ? new Promise((r) => setTimeout(r, latency))
+      : Promise.resolve();
   const fail = async (status: number, body?: unknown): Promise<never> => {
     throw await apiErrorFromResponse(
-      new Response(body === undefined ? null : JSON.stringify(body), { status }),
+      new Response(body === undefined ? null : JSON.stringify(body), {
+        status,
+      }),
     );
   };
   const find = async (id: string) => store.get(id) ?? (await fail(404));
 
   const validate = (m: UploadMetadata): string | null => {
-    if (m.model_landmarks.length !== 48 || m.user_landmarks.length !== 48) return "landmark_count";
+    if (m.model_landmarks.length !== 48 || m.user_landmarks.length !== 48)
+      return "landmark_count";
     if (m.moved_flags.length !== 48) return "moved_flags_count";
     if (m.model_measurements.length !== 4 || m.user_measurements.length !== 4)
       return "measurement_count";
-    if (m.notice_version !== MOCK_CONFIG.notice_version) return "notice_version";
+    if (m.notice_version !== MOCK_CONFIG.notice_version)
+      return "notice_version";
     return null;
   };
 
