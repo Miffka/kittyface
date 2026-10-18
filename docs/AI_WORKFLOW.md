@@ -48,3 +48,10 @@
 
 - The main session added `docker-compose.yaml` and the `make docker-up`/`docker-down` targets directly at the product owner's request, with no issue file. The app service builds the image and waits for a `postgres:17` service's health check, so the app migrates a ready database. `make docker-run` stays as the SQLite option.
 - Checked by hand: `docker compose up --build`, then `/api/v1/config` and `/` returned 200, `alembic_version` was at `62b6185e1c34`, and the database held the 3 seed uploads. A consent posted for a new token was still in the database after `docker compose restart app`. `docker compose down -v` cleaned up.
+
+## Postgres everywhere (2026-10-18)
+
+- The main session removed SQLite directly at the product owner's request, with no issue file. The product owner chose to make `DATABASE_URL` required, to run the tests on the compose Postgres, and to update `PLAN_PROJECT.md` item 28. History entries, delivered issue files and `docs/backlog.md` still say SQLite, as they did at the time.
+- Port 5432 was taken by another project's container, so the compose `db` service publishes 5433.
+- Checked: `uv run pytest` gave 29 passed and 0 skipped, with no `kittyface_test_*` database left behind. Importing the app without `DATABASE_URL` fails with `KeyError`. `docker compose up --build` served `/` and `/api/v1/config` with 200, migrated to `62b6185e1c34` and wrote the 3 seed uploads.
+

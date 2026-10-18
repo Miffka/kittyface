@@ -78,8 +78,8 @@ Grimace Scale (FGS) from cat face landmarks.
 
 27. **Frontend.** React, Vite and TypeScript, prototyped in Lovable and maintained
     in the repo by hand.
-28. **Backend.** FastAPI with SQLite locally and Postgres in production, switched
-    by `DATABASE_URL`.
+28. **Backend.** FastAPI with Postgres locally and in production, named by
+    `DATABASE_URL`.
 29. **Schema.** Alembic migrations run on container start, with one column per
     ratio and score.
 
