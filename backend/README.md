@@ -34,3 +34,14 @@ make docker-down    # docker compose down
 The `Dockerfile` builds the frontend in a Node stage, then copies the backend, `models/thresholds.json` and the frontend build into a Python image. The image holds no database: pass `DATABASE_URL`, and it runs the migrations on start.
 
 `docker-compose.yaml` runs the image against a `postgres:17` service and waits for its health check before starting the app, so the app migrates a ready database. Postgres keeps its data in the `kittyface-pg` volume; `docker compose down -v` deletes it. The `db` service publishes port 5433 on the host, so `make backend` and the tests can reach it without colliding with another Postgres on 5432. The user, password and database name come from `.env`, and compose refuses to start when one is missing. Postgres applies `POSTGRES_PASSWORD` only when it creates the volume. To change the password later, run `ALTER USER` in the database or delete the volume.
+
+## Deploy to AWS
+
+```sh
+aws configure   # once: keys and region for the target account
+make deploy     # STACK=name picks another stack, default kittyface
+```
+
+`deploy/deploy.sh` creates or updates the CloudFormation stack in `deploy/cloudformation.yaml`, builds the image for `linux/amd64`, pushes it to the stack's ECR repo, then pulls it and restarts compose on the instance over SSM. It prints the app's URL, `https://<elastic-ip>.sslip.io`. The first run takes a few minutes longer while the instance installs Docker.
+
+The instance is a t3.micro running Ubuntu 24.04 with a 2 GB swap file, and runs the app, `postgres:17` and Caddy from `/opt/kittyface/compose.yaml`. Postgres keeps its data on the instance's disk, so deleting the stack or replacing the instance deletes every upload. Open a shell with `aws ssm start-session --target <instance-id>`, which needs the [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html). `aws cloudformation delete-stack --stack-name kittyface` removes everything.

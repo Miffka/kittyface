@@ -85,3 +85,13 @@ No test covers "No cat face found". The localizer has no confidence output and r
 
 `docker-compose.yaml` takes `APP_PORT` and `DB_PORT` with the old ports as defaults, so the E2E stack runs beside a dev stack. `make test` skips `tests/e2e` through `norecursedirs`, because the suite needs Docker, a browser and about 75 seconds after the first image build.
 
+
+## One EC2 instance from CloudFormation, image from ECR, HTTPS on sslip.io (APP-23)
+
+`deploy/cloudformation.yaml` puts the app, Postgres and Caddy in docker compose on one t3.micro with a 2 GB swap file, as PLAN_PROJECT.md item 30 asks. The instance runs in standard CPU credit mode, so a busy period slows it to its baseline instead of adding surplus-credit charges. Postgres runs in compose and not on RDS, so the stack stays at one billable instance. The data lives on the instance's root volume: replacing or terminating the instance deletes every upload, and nothing backs it up yet.
+
+The product owner chose to build the image locally and push it to an ECR repo in the stack. Building the frontend on a 1 GB instance would take minutes of swapping on every deploy. The instance pulls through `amazon-ecr-credential-helper` and its IAM role, so it needs no AWS CLI and no stored credentials. A lifecycle rule keeps 3 images, under the 500 MB free tier.
+
+The product owner wanted HTTPS without buying a domain. `<elastic-ip>.sslip.io` resolves to the Elastic IP, and Caddy gets a Let's Encrypt certificate for it on first start. sslip.io shares Let's Encrypt's rate limits with all its users; a real domain replaces it by changing the `HOST` line in the template.
+
+The shell goes through SSM Session Manager: no key pair, and the security group opens only 80 and 443. `deploy/deploy.sh` also uses SSM to pull the new image and restart compose, and it generates the Postgres password on the instance, so the password never leaves it.

@@ -68,3 +68,9 @@
 - The supplied photos carried GPS tags and weighed 1.5 to 3.7 MB each. The session wrote metadata-free 1280 px copies to `tests/e2e/fixtures/cats` and left the originals in `tests/e2e/fixtures` uncommitted.
 - A probe run measured the browser-vs-Python spread per image before the session set any tolerance. It found the cat8 resize mismatch and showed that the localizer finds a "face" in blank images. Both are recorded in DECISIONS.md.
 - Checked: `make test-e2e` gave 12 passed and 1 xfailed in 75 s, with no `kittyface-e2e` volume left behind. `make test` gave 29 passed and collected nothing from `tests/e2e`.
+
+## APP-23: deploy to AWS (2026-10-18)
+
+- The main session planned APP-23 at the product owner's request and implemented it directly, without the PM, Engineer and QA subagents. The product owner picked ECR over building on the instance, HTTPS on a free sslip.io hostname and SSM over SSH.
+- The session installed AWS CLI v2 into `~/.local`. `.env` holds `AWS_USER` and `AWS_ACCESS_KEY` but no secret key under the names the CLI reads, so the product owner configures the CLI with `aws configure`.
+- Checked before any deploy: `cfn-lint` passes on the template and `bash -n` on `deploy/deploy.sh`.
