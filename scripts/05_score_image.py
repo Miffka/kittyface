@@ -1,7 +1,7 @@
 """Detect the face and landmarks on images, score each FGS action unit against
 models/thresholds.json, and write overlays with the ratios and scores drawn on.
 
-Usage: uv run python scripts/05_score_image.py <image_or_dir>... --out <dir>
+Usage: uv run python scripts/05_score_image.py <image_or_dir>... --out <dir> [--json <file>]
 """
 
 import argparse
@@ -39,12 +39,14 @@ def main(argv: list[str]) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("inputs", type=Path, nargs="+", help="image files or directories of images")
     parser.add_argument("--out", type=Path, required=True, help="directory for the overlays")
+    parser.add_argument("--json", type=Path, help="also write each image's box, landmarks, ratios and scores here")
     args = parser.parse_args(argv)
 
     images = [p for i in args.inputs for p in (sorted(i.iterdir()) if i.is_dir() else [i])]
     version = json.loads(THRESHOLDS.read_text())["version"]
     localizer, landmarks_model = detect.load_models(ROOT / "models" / "manifest.json")
     args.out.mkdir(parents=True, exist_ok=True)
+    results: dict = {"threshold_version": version, "images": {}}
 
     for path in images:
         image = cv2.imread(str(path))
@@ -52,9 +54,17 @@ def main(argv: list[str]) -> None:
         box = detect.detect_face_box(image, localizer)
         landmarks = detect.detect_landmarks(image, box, landmarks_model)
         lines = [version]
+        ratios, scores = {}, {}
         for unit, metric in METRICS.items():
-            ratio = float(metric(landmarks[None])[0])
-            lines.append(f"{unit} {ratio:.3f} -> {score_ratio(ratio, unit, version, THRESHOLDS)}")
+            ratios[unit] = float(metric(landmarks[None])[0])
+            scores[unit] = score_ratio(ratios[unit], unit, version, THRESHOLDS)
+            lines.append(f"{unit} {ratios[unit]:.3f} -> {scores[unit]}")
+        results["images"][path.name] = {
+            "box": [float(v) for v in box],
+            "landmarks": landmarks.tolist(),
+            "ratios": ratios,
+            "scores": scores,
+        }
 
         overlay = detect.draw_overlay(image, box, landmarks)
         cv2.rectangle(overlay, (0, 0), (230, 12 + 22 * len(lines)), (0, 0, 0), -1)
@@ -62,6 +72,8 @@ def main(argv: list[str]) -> None:
             cv2.putText(overlay, line, (8, 24 + 22 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
         cv2.imwrite(str(args.out / path.name), overlay)
         print(f"{path.name}: {', '.join(lines[1:])}")
+    if args.json:
+        args.json.write_text(json.dumps(results, indent=2) + "\n")
 
 
 if __name__ == "__main__":
