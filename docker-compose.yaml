@@ -1,9 +1,9 @@
-# The app image against Postgres, on http://localhost:8091. Credentials come from .env (see .example.env).
+# The app image against Postgres, on http://localhost:8091 (APP_PORT and DB_PORT move the host ports). Credentials come from .env (see .example.env).
 services:
   app:
     build: .
     ports:
-      - "8091:8091"
+      - "${APP_PORT:-8091}:8091"
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
     depends_on:
@@ -18,7 +18,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?set it in .env, see .example.env}
     # 5433 on the host, so it doesn't collide with another local Postgres on 5432.
     ports:
-      - "5433:5432"
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - kittyface-pg:/var/lib/postgresql/data
     healthcheck:
