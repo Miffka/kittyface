@@ -31,3 +31,5 @@
 - The first fallback caught `fastapi.HTTPException`, which subclasses Starlette's, so Starlette's 404 slipped past it. The new test caught it before the commit.
 - Checked by hand: `docker build` and `docker run`, then curl against `/`, `/history/x`, `/api/v1/config`, `/api/v1/nope`, a `.wasm` asset (served as `application/wasm`) and an ONNX model. Nobody has clicked through the app in a browser against the container yet.
 - Decision record: [DECISIONS.md](DECISIONS.md#one-image-and-the-backend-serves-the-spa-build).
+- Follow-up at the product owner's request: OpenCV and OpenVINO moved to the `dev` group, and `backend/store.py` encodes the seed PNGs with the standard library, so the image went from 975 MB to 505 MB. A decode test in `tests/backend/test_api.py` checks the hand-written encoder against OpenCV. A rebuilt container served the same curl checks plus a seed image. Running plain `uv sync` removed the locally installed `train` group, and the export test skipped until `uv sync --group train --group dev` put it back.
+- Decision record: [DECISIONS.md](DECISIONS.md#opencv-and-openvino-are-dev-dependencies).
