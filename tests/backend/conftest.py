@@ -5,13 +5,8 @@ from pathlib import Path
 
 from sqlalchemy import create_engine, make_url, text
 
-# The compose Postgres from `make db`; TEST_POSTGRES_URL points at another server.
-SERVER = make_url(
-    os.environ.get(
-        "TEST_POSTGRES_URL",
-        "postgresql+psycopg://kittyface:kittyface@localhost:5433/kittyface",
-    )
-)
+# The server DATABASE_URL names (from .env); TEST_POSTGRES_URL points at another one.
+SERVER = make_url(os.environ.get("TEST_POSTGRES_URL") or os.environ["DATABASE_URL"])
 TEST_DB = f"kittyface_test_{secrets.token_hex(4)}"
 # AUTOCOMMIT: Postgres refuses CREATE/DROP DATABASE inside a transaction.
 admin = create_engine(SERVER, isolation_level="AUTOCOMMIT")

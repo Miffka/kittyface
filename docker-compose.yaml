@@ -1,11 +1,11 @@
-# The app image against Postgres, on http://localhost:8091.
+# The app image against Postgres, on http://localhost:8091. Credentials come from .env (see .example.env).
 services:
   app:
     build: .
     ports:
       - "8091:8091"
     environment:
-      DATABASE_URL: postgresql+psycopg://kittyface:kittyface@db/kittyface
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
     depends_on:
       db:
         condition: service_healthy
@@ -13,16 +13,16 @@ services:
   db:
     image: postgres:17
     environment:
-      POSTGRES_USER: kittyface
-      POSTGRES_PASSWORD: kittyface
-      POSTGRES_DB: kittyface
+      POSTGRES_USER: ${POSTGRES_USER:?set it in .env, see .example.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env, see .example.env}
+      POSTGRES_DB: ${POSTGRES_DB:?set it in .env, see .example.env}
     # 5433 on the host, so it doesn't collide with another local Postgres on 5432.
     ports:
       - "5433:5432"
     volumes:
       - kittyface-pg:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "kittyface"]
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
       interval: 2s
       retries: 15
 

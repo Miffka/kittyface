@@ -1,4 +1,7 @@
-.PHONY: run backend frontend db docker-build docker-up docker-down
+.PHONY: run backend frontend db test docker-build docker-up docker-down
+
+# .env (from .example.env) exports DATABASE_URL to every target.
+-include .env
 
 # Both servers in parallel; Ctrl-C stops both.
 run:
@@ -13,6 +16,9 @@ frontend:
 # Starts only the compose Postgres, on localhost:5433, for `make backend` and the tests.
 db:
 	docker compose up -d --wait db
+
+test:
+	uv run pytest
 
 # The app image: frontend build plus backend, on http://localhost:8091.
 docker-build:

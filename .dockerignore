@@ -7,3 +7,4 @@ data
 frontend/.output
 frontend/dist
 models/*.tflite
+.env
