@@ -14,3 +14,11 @@
 - Each ticket records what shipped. Gaps against the backlog criteria sit under out-of-scope and link back to the open backlog entry, which stays the home of the remaining work. APP-16, 17, 18, 19, 22, 23 and 24 have no code and no ticket.
 - Open for the product owner: APP-1 conflicts with the shipped responsive app (no phone notice); APP-4 re-runs detection on an unchanged box; APP-10 strips and rotates only in the browser; APP-26's seed runs in every environment.
 - No QA pass ran. Ticked criteria come from reading the code and the existing tests, not from running them.
+
+## RSCH-5: proxy-score cutoffs (2026-10-18)
+
+- The main session planned and implemented RSCH-5 directly at the product owner's request, with no PM, Engineer or QA subagents. A read-only dry run on the FGS manual photos showed orbital and whisker out of order before any code got written. The product owner chose one version per thresholds file and asked for an extra script, `scripts/05_score_image.py`, that draws the ratios and scores onto each photo.
+- Issue: [issues/RSCH-5.md](issues/RSCH-5.md). The main session wrote it after implementing, so no PM grooming preceded the work.
+- Delivered: `scripts/04_fit_thresholds.py`, `models/thresholds.json` (`fgs-manual-1.0.0`), `geometry.score_ratio`, its tests in `tests/test_geometry.py`, and a fix to `scripts/02_detect_landmarks.py`'s `ROOT`, which pointed into `scripts/`. `AU_SCORE_RISES` now uses the frontend's unit keys (`ear`, `whisker`).
+- The fit, the per-AU agreement and the whisker/muzzle correlation (r = -0.41, n = 13), with its About-page wording, are in [DECISIONS.md](DECISIONS.md#fgs-proxy-cutoffs-come-from-the-fgs-training-manual-version-fgs-manual-100-rsch-5).
+- Open: the frontend mock and `backend/store.py` still serve `mock-thresholds-0.1.0`, and APP-8 switches them. Orbital (1/3) and whisker (1/3) need better metrics or more labeled photos.
