@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest", "ruff", "mypy", "httpx", "python-dotenv", "onnx", "onnxruntime", "onnxsim", "openvino", "opencv-python-headless", "numpy"]
+dev = ["pytest", "ruff", "mypy", "httpx", "python-dotenv", "onnx", "onnxruntime", "onnxsim", "openvino", "opencv-python-headless", "numpy", "pytest-playwright>=0.10.0"]
 train = ["tf2onnx==1.17.0", "tensorflow-cpu==2.21.0"]
 
 [build-system]
@@ -24,6 +24,8 @@ build-backend = "uv_build"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# tests/e2e needs Docker and a browser; run it with `make test-e2e`.
+norecursedirs = [".*", "node_modules", "venv", "e2e"]
 
 [tool.ruff]
 line-length = 88

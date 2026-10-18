@@ -1,4 +1,4 @@
-.PHONY: run backend frontend db test docker-build docker-up docker-down
+.PHONY: run backend frontend db test test-e2e docker-build docker-up docker-down
 
 # .env (from .example.env) exports DATABASE_URL to every target.
 -include .env
@@ -19,6 +19,10 @@ db:
 
 test:
 	uv run pytest
+
+# Chromium against the compose stack on port 18091, its own project and volume; needs `uv run playwright install chromium`.
+test-e2e:
+	uv run pytest tests/e2e
 
 # The app image: frontend build plus backend, on http://localhost:8091.
 docker-build:
