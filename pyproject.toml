@@ -9,12 +9,11 @@ dependencies = [
     "pydantic",
     "sqlalchemy",
     "alembic",
-    "numpy",
     "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]
-dev = ["pytest", "ruff", "mypy", "httpx", "python-dotenv", "onnx", "onnxruntime", "onnxsim", "openvino", "opencv-python-headless"]
+dev = ["pytest", "ruff", "mypy", "httpx", "python-dotenv", "onnx", "onnxruntime", "onnxsim", "openvino", "opencv-python-headless", "numpy"]
 train = ["tf2onnx==1.17.0", "tensorflow-cpu==2.21.0"]
 
 [build-system]
