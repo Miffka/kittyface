@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createMockApi, MOCK_CONFIG } from "@/api/mock";
 import { ApiError } from "@/api/errors";
@@ -34,27 +35,53 @@ describe("mock API", () => {
     expect((await api.getUpload(id)).metadata.user_landmarks).toHaveLength(48);
     expect(await api.getUploadImage(id)).toBe(image);
     await api.deleteUpload(id);
-    await expect(api.getUpload(id)).rejects.toThrow("This upload no longer exists.");
+    await expect(api.getUpload(id)).rejects.toThrow(
+      "This upload no longer exists.",
+    );
   });
 
   it("rejects bad uploads with mapped errors", async () => {
     const api = createMockApi({ latencyMs: 0 });
     const meta = await metadata();
-    await expect(api.saveUpload(new Blob(["x"], { type: "image/gif" }), meta)).rejects.toThrow(
-      "Only JPEG, PNG and WebP files are supported.",
-    );
+    await expect(
+      api.saveUpload(new Blob(["x"], { type: "image/gif" }), meta),
+    ).rejects.toThrow("Only JPEG, PNG and WebP files are supported.");
     const err = await api
-      .saveUpload(new Blob(["x"], { type: "image/jpeg" }), { ...meta, moved_flags: [] })
+      .saveUpload(new Blob(["x"], { type: "image/jpeg" }), {
+        ...meta,
+        moved_flags: [],
+      })
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
-    expect((err as ApiError).message).toBe("The landmarks could not be saved: moved_flags_count");
+    expect((err as ApiError).message).toBe(
+      "The landmarks could not be saved: moved_flags_count",
+    );
   });
 
   it("records consent and events", async () => {
     const api = createMockApi({ latencyMs: 0 });
     await api.postConsent("v1");
-    api.postEvent({ model_version: null, backend: null, outcome: "load_failure", load_ms: 3, inference_ms: null });
+    api.postEvent({
+      model_version: null,
+      backend: null,
+      outcome: "load_failure",
+      load_ms: 3,
+      inference_ms: null,
+    });
     expect(api.consents).toEqual(["v1"]);
     expect(api.events[0]?.outcome).toBe("load_failure");
+  });
+});
+
+describe("MOCK_CONFIG thresholds", () => {
+  it("match models/thresholds.json", () => {
+    const file = JSON.parse(readFileSync("../models/thresholds.json", "utf8"));
+    expect(MOCK_CONFIG.threshold_version).toBe(file.version);
+    expect(MOCK_CONFIG.thresholds.version).toBe(file.version);
+    for (const [unit, rule] of Object.entries(MOCK_CONFIG.thresholds.units))
+      expect(rule).toEqual({
+        cutoffs: file.units[unit].cutoffs,
+        direction: file.units[unit].direction,
+      });
   });
 });

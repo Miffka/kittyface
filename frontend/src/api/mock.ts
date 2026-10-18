@@ -7,16 +7,17 @@ import type {
   UploadMetadata,
 } from "./types";
 
+// Copy of models/thresholds.json (scripts/04_fit_thresholds.py); keep in sync.
 export const MOCK_CONFIG: AppConfig = {
-  threshold_version: "mock-thresholds-0.1.0",
+  threshold_version: "fgs-manual-1.0.0",
   notice_version: "2026-10-04",
   thresholds: {
-    version: "mock-thresholds-0.1.0",
+    version: "fgs-manual-1.0.0",
     units: {
-      ear: { cutoffs: [1.9, 2.2], direction: "ascending" },
-      orbital: { cutoffs: [0.35, 0.55], direction: "descending" },
-      muzzle: { cutoffs: [0.3, 0.4], direction: "descending" },
-      whisker: { cutoffs: [10.0, 25.0], direction: "ascending" },
+      ear: { cutoffs: [1.7134, 2.0046], direction: "ascending" },
+      orbital: { cutoffs: [0.7414, 0.9032], direction: "descending" },
+      muzzle: { cutoffs: [0.3765, 0.4194], direction: "descending" },
+      whisker: { cutoffs: [21.1361, 21.1678], direction: "ascending" },
     },
   },
 };
