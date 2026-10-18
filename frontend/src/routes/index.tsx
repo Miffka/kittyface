@@ -45,7 +45,12 @@ function About() {
           The Feline Grimace Scale is a validated instrument that trained observers use to assess
           acute pain in cats from five facial action units: ear position, orbital tightening, muzzle
           tension, whisker change and head position. Each unit is scored 0, 1 or 2.{" "}
-          <a href="#" className="text-primary underline">TODO: citation link</a>
+          Source: Evangelista MC et al. (2019),{" "}
+          <a href="https://doi.org/10.1038/s41598-019-55693-8" className="text-primary underline">
+            Facial expressions of pain in cats: the development and validation of a Feline Grimace Scale
+          </a>
+          , Scientific Reports 9:19128. See also{" "}
+          <a href="https://www.felinegrimacescale.com" className="text-primary underline">felinegrimacescale.com</a>.
         </p>
         <p>
           This app does not apply the scale. It computes geometric proxies inspired by it. They say
