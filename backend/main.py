@@ -1,17 +1,23 @@
 import os
 from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 
 from backend import store
-from backend.db import Base, SessionLocal, engine
+from backend.db import SessionLocal
 from backend.routers import router
 
-# ponytail: create_all only adds missing tables; APP-20 brings Alembic migrations.
-Base.metadata.create_all(engine)
+# Built in code, not from alembic.ini, so it works from any directory and in the image.
+alembic_config = Config()
+alembic_config.set_main_option(
+    "script_location", str(Path(__file__).parent / "migrations")
+)
+command.upgrade(alembic_config, "head")
 with SessionLocal() as session:
     store.seed(session)
 
