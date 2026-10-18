@@ -1,4 +1,4 @@
-.PHONY: run backend frontend db docker-build docker-run docker-up docker-down
+.PHONY: run backend frontend db docker-build docker-up docker-down
 
 # Both servers in parallel; Ctrl-C stops both.
 run:
@@ -10,17 +10,13 @@ backend:
 frontend:
 	cd frontend && bun --bun run dev
 
-# Runs the migrations and writes the demo seed in $DATABASE_URL (default ./kittyface.db).
+# Starts only the compose Postgres, on localhost:5433, for `make backend` and the tests.
 db:
-	uv run python -c "import backend.main"
+	docker compose up -d --wait db
 
 # The app image: frontend build plus backend, on http://localhost:8091.
 docker-build:
 	docker build -t kittyface .
-
-# Keeps the SQLite database in the kittyface-data volume across runs.
-docker-run:
-	docker run --rm -p 8091:8091 -v kittyface-data:/app/data kittyface
 
 # The app plus Postgres from docker-compose.yaml; the database lives in the kittyface-pg volume.
 docker-up:

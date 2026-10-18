@@ -2,12 +2,11 @@ import os
 import subprocess
 import sys
 
-import pytest
 from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy import Column, Integer, MetaData, create_engine, text
+from sqlalchemy import Column, Integer, MetaData
 
 from backend.db import Base, Consent, SessionLocal, engine
 from backend.main import alembic_config
@@ -49,8 +48,6 @@ def test_drift_check_sees_a_model_change():
         assert diff(conn, changed)
 
 
-PG_URL = os.environ.get("TEST_POSTGRES_URL")
-
 SAVE = """
 from tests.backend.test_api import consented_token, save
 token = consented_token()
@@ -66,27 +63,15 @@ print(" ".join(u["id"] for u in listed))
 
 def run_app(code, *args):
     # backend.db binds DATABASE_URL at import, so each start is its own process.
-    env = os.environ | {"DATABASE_URL": PG_URL, "FRONTEND_DIR": "/nonexistent"}
     return subprocess.run(
         [sys.executable, "-c", code, *args],
-        env=env,
+        env=os.environ | {"FRONTEND_DIR": "/nonexistent"},
         capture_output=True,
         text=True,
         check=True,
     ).stdout.split()
 
 
-@pytest.mark.skipif(not PG_URL, reason="TEST_POSTGRES_URL is not set")
-def test_postgres_migrate_save_restart():
-    # Wipes the database's public schema: point TEST_POSTGRES_URL at a scratch one.
-    pg = create_engine(PG_URL)
-    with pg.begin() as conn:
-        conn.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public"))
-
-    token, upload_id = run_app(SAVE)  # first start migrates an empty database
-    assert run_app(LIST, token) == [upload_id]  # restart keeps the upload
-
-    with pg.connect() as conn:
-        version = conn.execute(text("SELECT version_num FROM alembic_version"))
-        assert version.scalars().all() == [HEAD]
-        assert diff(conn) == []
+def test_restart_keeps_saved_upload():
+    token, upload_id = run_app(SAVE)
+    assert run_app(LIST, token) == [upload_id]

@@ -169,7 +169,7 @@ def test_solid_png_decodes_to_its_color():
 
 
 def test_saved_upload_is_in_the_configured_database():
-    assert "test.db" in DATABASE_URL  # conftest's DATABASE_URL was honoured
+    assert "kittyface_test_" in DATABASE_URL  # conftest's DATABASE_URL was honoured
     upload_id = save(consented_token()).json()["id"]
     # A fresh engine stands in for a restarted server.
     with Session(create_engine(DATABASE_URL)) as session:

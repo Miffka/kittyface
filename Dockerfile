@@ -15,10 +15,6 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY backend backend
 COPY models/thresholds.json models/
 COPY --from=frontend /app/frontend/.output/public frontend/.output/public
-# SQLite on a volume by default; set DATABASE_URL to a postgresql+psycopg:// URL for Postgres.
-# backend.main runs the migrations on start.
-ENV DATABASE_URL=sqlite:////app/data/kittyface.db
-RUN mkdir data
-VOLUME /app/data
+# Needs DATABASE_URL, a postgresql+psycopg:// URL; backend.main runs the migrations on start.
 EXPOSE 8091
 CMD ["/app/.venv/bin/uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8091"]

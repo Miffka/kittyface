@@ -1,16 +1,12 @@
-"""SQLAlchemy engine and tables. DATABASE_URL picks the database; SQLite by default."""
+"""SQLAlchemy engine and tables. DATABASE_URL names the Postgres database."""
 
 import os
 
-from sqlalchemy import JSON, LargeBinary, create_engine, make_url
+from sqlalchemy import JSON, LargeBinary, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///kittyface.db")
-# FastAPI runs sync routes in a threadpool; SQLite connections refuse that by default.
-_sqlite = make_url(DATABASE_URL).get_backend_name() == "sqlite"
-engine = create_engine(
-    DATABASE_URL, connect_args={"check_same_thread": False} if _sqlite else {}
-)
+DATABASE_URL = os.environ["DATABASE_URL"]
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(engine)
 
 

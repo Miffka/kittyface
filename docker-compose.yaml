@@ -16,6 +16,9 @@ services:
       POSTGRES_USER: kittyface
       POSTGRES_PASSWORD: kittyface
       POSTGRES_DB: kittyface
+    # 5433 on the host, so it doesn't collide with another local Postgres on 5432.
+    ports:
+      - "5433:5432"
     volumes:
       - kittyface-pg:/var/lib/postgresql/data
     healthcheck:

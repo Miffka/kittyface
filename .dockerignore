@@ -4,7 +4,6 @@
 .venv
 .*_cache
 data
-*.db
 frontend/.output
 frontend/dist
 models/*.tflite
