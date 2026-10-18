@@ -37,8 +37,9 @@
 
 ## APP-20: move off SQLite (2026-10-18)
 
-- The product owner had the issue re-groomed into [issues/APP-20.md](issues/APP-20.md) and approved `psycopg[binary]` as a new runtime dependency.
+- The main session ran the full lifecycle as orchestrator. The PM subagent re-groomed [issues/APP-20.md](issues/APP-20.md) with the product owner's decisions: `psycopg[binary]` as a new runtime dependency, and no upgrade path for databases that `create_all` built.
 - Engineer subagent implemented it in commits for the dependency, the Alembic environment and baseline revision, migrate-on-start with `tests/backend/test_migrations.py`, and the docs.
 - Checked by hand against `postgres:17` in Docker: the backend tests with `TEST_POSTGRES_URL` set, two uvicorn starts from `/tmp` against a fresh database, and the app image saving an upload, listing it, and listing it again after `docker restart`. Uvicorn's logs stayed intact.
+- QA subagent passed all 16 criteria against `postgres:17` and the built image. To confirm the drift test catches drift, it added a column to the `Event` model in a scratch copy of the repo, and the test failed.
 - Mistake: an ad-hoc check imported `tests.backend.test_api` without `DATABASE_URL`, so the app migrated the repo's own `kittyface.db`. The baseline failed on the existing tables, but SQLite had already committed an empty `alembic_version` table into that file. Uploads and consents are untouched. The file needs the delete-once step from `backend/README.md` either way.
 - Decision record: [DECISIONS.md](DECISIONS.md#alembic-migrations-run-on-start-postgres-through-psycopg-app-20).

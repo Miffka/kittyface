@@ -18,7 +18,7 @@ The export check runs on five CatFLW photos in `data/catflw/images/`. We have no
 
 ## SQLAlchemy storage, chosen by `DATABASE_URL` (`backend/`)
 
-`backend/db.py` holds the engine and three tables: `consents`, `uploads`, `events`. `DATABASE_URL` picks the database and defaults to `sqlite:///kittyface.db` in the working directory. The tables use only portable column types (`String`, `JSON`, `LargeBinary`, `Float`), so Postgres needs a new URL and a driver, with no code change. The one SQLite branch turns off `check_same_thread`, because FastAPI runs sync routes in a threadpool. Each upload stores its `UploadMetadata` in one JSON column, since the API reads and writes it whole. `created_at` stays an ISO-8601 UTC string, so API responses keep their exact format and string order matches time order. The app calls `create_all` at import and re-merges the demo seed rows, which makes restarts idempotent; a deleted seed upload comes back on the next start. Alembic migrations stay with APP-20.
+`backend/db.py` holds the engine and three tables: `consents`, `uploads`, `events`. `DATABASE_URL` picks the database and defaults to `sqlite:///kittyface.db` in the working directory. The tables use only portable column types (`String`, `JSON`, `LargeBinary`, `Float`), so Postgres needs a new URL and a driver, with no code change. The one SQLite branch turns off `check_same_thread`, because FastAPI runs sync routes in a threadpool. Each upload stores its `UploadMetadata` in one JSON column, since the API reads and writes it whole. `created_at` stays an ISO-8601 UTC string, so API responses keep their exact format and string order matches time order. The app re-merges the demo seed rows on every start, which makes restarts idempotent; a deleted seed upload comes back on the next start. This entry first created the tables with `create_all`; the APP-20 entry below replaces that with Alembic migrations.
 
 ## FGS action-unit metrics read named landmarks (RSCH-2 redo)
 
@@ -47,7 +47,7 @@ The `Dockerfile` builds one image that runs FastAPI and serves the frontend from
 
 `backend/main.py` mounts that directory at `/` after the API routes. A path with no file gets the shell, so reloading `/history/<id>` works. Paths under `api/` skip the fallback and return 404, so a typo in an API path doesn't come back as HTML with status 200. `FRONTEND_DIR` overrides the directory, and the backend skips the mount when the directory is missing, so `make backend` and the tests run without a build.
 
-Node runs the Vite build, and bun only installs packages, so the image uses `bun.lock` and `bunfig.toml`'s 24-hour release-age guard. npm would ignore `bun.lock`. The Python stage runs `uv sync --frozen --no-dev --no-install-project`: the backend never imports `src/kittyface`, so the image skips the package and the dev and train groups. SQLite lives at `/app/data/kittyface.db` on a volume until APP-20 moves production to Postgres.
+Node runs the Vite build, and bun only installs packages, so the image uses `bun.lock` and `bunfig.toml`'s 24-hour release-age guard. npm would ignore `bun.lock`. The Python stage runs `uv sync --frozen --no-dev --no-install-project`: the backend never imports `src/kittyface`, so the image skips the package and the dev and train groups. SQLite lives at `/app/data/kittyface.db` on a volume by default, and a Postgres `DATABASE_URL` replaces it (APP-20).
 
 ## OpenCV, OpenVINO and NumPy are dev dependencies
 
