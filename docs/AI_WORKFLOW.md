@@ -34,3 +34,11 @@
 - Follow-up at the product owner's request: OpenCV and OpenVINO moved to the `dev` group, and `backend/store.py` encodes the seed PNGs with the standard library, so the image went from 975 MB to 505 MB. A decode test in `tests/backend/test_api.py` checks the hand-written encoder against OpenCV. A rebuilt container served the same curl checks plus a seed image. Running plain `uv sync` removed the locally installed `train` group, and the export test skipped until `uv sync --group train --group dev` put it back.
 - Second follow-up: NumPy moved to `dev` too, since the backend no longer imports it. The image is now 428 MB, and the same container checks pass.
 - Decision record: [DECISIONS.md](DECISIONS.md#opencv-openvino-and-numpy-are-dev-dependencies).
+
+## APP-20: move off SQLite (2026-10-18)
+
+- The product owner had the issue re-groomed into [issues/APP-20.md](issues/APP-20.md) and approved `psycopg[binary]` as a new runtime dependency.
+- Engineer subagent implemented it in commits for the dependency, the Alembic environment and baseline revision, migrate-on-start with `tests/backend/test_migrations.py`, and the docs.
+- Checked by hand against `postgres:17` in Docker: the backend tests with `TEST_POSTGRES_URL` set, two uvicorn starts from `/tmp` against a fresh database, and the app image saving an upload, listing it, and listing it again after `docker restart`. Uvicorn's logs stayed intact.
+- Mistake: an ad-hoc check imported `tests.backend.test_api` without `DATABASE_URL`, so the app migrated the repo's own `kittyface.db`. The baseline failed on the existing tables, but SQLite had already committed an empty `alembic_version` table into that file. Uploads and consents are untouched. The file needs the delete-once step from `backend/README.md` either way.
+- Decision record: [DECISIONS.md](DECISIONS.md#alembic-migrations-run-on-start-postgres-through-psycopg-app-20).
