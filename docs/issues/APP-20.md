@@ -36,3 +36,13 @@ Groomed from the [APP-20 entry](../backlog.md#app-20-move-off-sqlite). Status: o
 **Depends on.** [APP-9](APP-9.md), [APP-11](APP-11.md), [APP-13](APP-13.md), [APP-15](APP-15.md) (the schema the baseline captures). [APP-21](APP-21.md) for the `events` table.
 
 **Out of scope.** Nothing moved out. Decided against, not deferred: an upgrade path for databases built by `create_all` (they get deleted once), and locking against concurrent migrations (the image runs a single uvicorn process).
+
+## Engineer
+
+- `psycopg[binary]` added with `uv add`; `uv export --no-dev` lists it, and the `--no-dev` image connected to Postgres.
+- `backend/migrations/` holds `env.py` (runs on `backend.db.engine` with `Base.metadata`, `render_as_batch=True`, no `fileConfig`), `script.py.mako` and one baseline revision, `62b6185e1c34`, for `consents`, `uploads` with `ix_uploads_token`, and `events`. The root `alembic.ini` sets `script_location` and `prepend_sys_path = .`, which the CLI needs to import `backend`.
+- `backend/main.py` runs `command.upgrade` on a `Config` built in code with the absolute path to `backend/migrations`, then seeds. `create_all` and its comment are gone.
+- `tests/backend/test_migrations.py`: exactly one revision; a second upgrade applies nothing and keeps rows; `compare_metadata` against the migrated database is empty; a model copy with an extra `uploads` column produces a non-empty diff; a Postgres test, skipped without `TEST_POSTGRES_URL`, wipes the `public` schema, saves an upload in one process, lists it in a second, and checks `alembic_version` and the drift diff.
+- Results: `uv run pytest` gives 28 passed, 1 skipped. With `TEST_POSTGRES_URL` against `postgres:17`, `uv run pytest tests/backend` gives 18 passed. Uvicorn started twice from `/tmp` against a fresh Postgres database served requests, logged normally, and left `alembic_version` at `62b6185e1c34`. The built image against Postgres saved an upload, listed it, and listed it again after `docker restart`; it contains `backend/migrations/` and no `alembic.ini`.
+- Docs: `backend/README.md`, `backend/AGENTS.md`, the `Dockerfile` and `Makefile` comments, `docs/DECISIONS.md`, `docs/AI_WORKFLOW.md`.
+- The repo's `kittyface.db` gained an empty `alembic_version` table during an ad-hoc check (see `docs/AI_WORKFLOW.md`). It was a `create_all` database, so it needs the delete-once step anyway.
