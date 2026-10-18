@@ -2,11 +2,11 @@
 
 import json
 import math
+import struct
+import zlib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-import cv2
-import numpy as np
 from sqlalchemy.orm import Session
 
 from backend.db import Consent, Upload
@@ -25,6 +25,23 @@ CONFIG = AppConfig.model_validate(
 )
 
 
+def solid_png(width: int, height: int, rgb: tuple[int, int, int]) -> bytes:
+    """A one-color 8-bit RGB PNG, so the seed needs no image library."""
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        body = tag + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    rows = (b"\0" + bytes(rgb) * width) * height
+    header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(rows))
+        + chunk(b"IEND", b"")
+    )
+
+
 # Paste this into the frontend's localStorage token to see the seed data.
 DEMO_TOKEN = "0" * 32
 
@@ -35,9 +52,9 @@ def seed(session: Session) -> None:
     now = datetime.now(UTC)
     for i, (ratios, scores, color) in enumerate(
         [
-            ([1.6, 0.92, 0.45, 16.0], [0, 0, 0, 0], (80, 140, 200)),
+            ([1.6, 0.92, 0.45, 16.0], [0, 0, 0, 0], (200, 140, 80)),
             ([1.85, 0.85, 0.40, 21.15], [1, 1, 1, 1], (120, 120, 120)),
-            ([2.2, 0.6, 0.36, 26.0], [2, 2, 2, 2], (40, 70, 110)),
+            ([2.2, 0.6, 0.36, 26.0], [2, 2, 2, 2], (110, 70, 40)),
         ]
     ):
         box = Box(x=40, y=30, width=240, height=200)
@@ -55,7 +72,6 @@ def seed(session: Session) -> None:
                 ["ear", "orbital", "muzzle", "whisker"], ratios, scores, strict=True
             )
         ]
-        png = cv2.imencode(".png", np.full((260, 320, 3), color, np.uint8))[1]
         upload_id = f"seed-{i + 1}"
         session.merge(
             Upload(
@@ -76,7 +92,7 @@ def seed(session: Session) -> None:
                     geometry_version="seed",
                     notice_version=CONFIG.notice_version,
                 ).model_dump(mode="json"),
-                image=png.tobytes(),
+                image=solid_png(320, 260, color),
                 content_type="image/png",
             )
         )

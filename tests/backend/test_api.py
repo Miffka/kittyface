@@ -1,13 +1,15 @@
 import json
 import secrets
 
+import cv2
+import numpy as np
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from backend.db import DATABASE_URL, Upload
 from backend.main import app
-from backend.store import CONFIG, DEMO_TOKEN
+from backend.store import CONFIG, DEMO_TOKEN, solid_png
 
 client = TestClient(app)
 PNG = b"\x89PNG\r\n\x1a\nfake"
@@ -157,6 +159,13 @@ def test_demo_token_sees_seed_newest_first():
     assert [u["id"] for u in seeded] == ["seed-3", "seed-2", "seed-1"]
     img = client.get("/api/v1/uploads/seed-1/image", headers=headers(DEMO_TOKEN))
     assert img.content.startswith(b"\x89PNG")
+
+
+def test_solid_png_decodes_to_its_color():
+    png = np.frombuffer(solid_png(3, 2, (200, 140, 80)), np.uint8)
+    img = cv2.imdecode(png, cv2.IMREAD_COLOR)
+    assert img.shape == (2, 3, 3)
+    assert (img == (80, 140, 200)).all()  # OpenCV decodes to BGR
 
 
 def test_saved_upload_is_in_the_configured_database():
