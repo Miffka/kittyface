@@ -67,3 +67,7 @@ The product owner dropped SQLite, so local runs, tests and production all use th
 
 The tests run against Postgres, with no skipped Postgres test. `tests/backend/conftest.py` creates a `kittyface_test_<hex>` database on the compose Postgres, or on the server `TEST_POSTGRES_URL` names, before `backend.db` is imported. `pytest_sessionfinish` drops it `WITH (FORCE)`, which closes the connections the app's engine still holds. A random name keeps two concurrent runs apart. The upgrade-from-empty path still runs on every session, because importing `backend.main` migrates the new database. The old subprocess Postgres test now checks only that an upload survives a restart.
 
+## Database credentials live in `.env`, from `.example.env`
+
+`.example.env` is the committed template; `.env` holds the real values and is ignored by git and Docker. Every line is `export KEY=value`, which `source .env`, GNU make's `include` and docker compose all parse, so one file feeds the shell, `make` targets and compose. `DATABASE_URL` is built inside the file from `${POSTGRES_USER}`, `${POSTGRES_PASSWORD}` and `${POSTGRES_DB}`, and all three readers expand that. The compose app service builds its own URL from the same variables with the host `db`, and the `db` service uses `${VAR:?}`, so compose fails naming the missing variable instead of starting Postgres with a blank password. `tests/backend/conftest.py` creates its throwaway database on the server `DATABASE_URL` names, so the tests carry no credentials either. We use a hex password, so it needs no URL escaping.
+

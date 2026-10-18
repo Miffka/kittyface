@@ -55,3 +55,9 @@
 - Port 5432 was taken by another project's container, so the compose `db` service publishes 5433.
 - Checked: `uv run pytest` gave 29 passed and 0 skipped, with no `kittyface_test_*` database left behind. Importing the app without `DATABASE_URL` fails with `KeyError`. `docker compose up --build` served `/` and `/api/v1/config` with 200, migrated to `62b6185e1c34` and wrote the 3 seed uploads.
 
+## Credentials in `.env` (2026-10-18)
+
+- The main session added `.example.env` and wired compose, the Makefile and the tests to `.env` directly at the product owner's request. The existing `.env` already held AWS credentials, so the session appended the database block without printing or overwriting them, with a generated hex password.
+- The `kittyface-pg` volume had been created with the old hard-coded password, and Postgres ignores `POSTGRES_PASSWORD` on an existing volume, so the session ran `ALTER USER` to match `.env`. The old password is refused now.
+- Checked: `make test` gave 29 passed. `source .env` connects. `docker compose up --build` served `/api/v1/config` with 200. Without `.env`, `docker compose config` fails naming each missing variable.
+
