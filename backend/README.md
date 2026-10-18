@@ -22,6 +22,10 @@ After `bun --bun run build` in `frontend/`, the backend serves `frontend/.output
 ```sh
 make docker-build   # docker build -t kittyface .
 make docker-run     # docker run --rm -p 8091:8091 -v kittyface-data:/app/data kittyface
+make docker-up      # docker compose up --build: the app plus Postgres
+make docker-down    # docker compose down
 ```
 
 The `Dockerfile` builds the frontend in a Node stage, then copies the backend, `models/thresholds.json` and the frontend build into a Python image. The image keeps its SQLite database at `/app/data/kittyface.db`; mount a volume there to keep data across containers, or set `DATABASE_URL` to a Postgres URL. The image runs the migrations on start.
+
+`docker-compose.yaml` runs the image against a `postgres:17` service and waits for its health check before starting the app, so the app migrates a ready database. Postgres keeps its data in the `kittyface-pg` volume; `docker compose down -v` deletes it. The credentials (`kittyface`/`kittyface`) are for local use only.

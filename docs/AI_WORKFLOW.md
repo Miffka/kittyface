@@ -43,3 +43,8 @@
 - QA subagent passed all 16 criteria against `postgres:17` and the built image. To confirm the drift test catches drift, it added a column to the `Event` model in a scratch copy of the repo, and the test failed.
 - Mistake: an ad-hoc check imported `tests.backend.test_api` without `DATABASE_URL`, so the app migrated the repo's own `kittyface.db`. The baseline failed on the existing tables, but SQLite had already committed an empty `alembic_version` table into that file. Uploads and consents are untouched. The file needs the delete-once step from `backend/README.md` either way.
 - Decision record: [DECISIONS.md](DECISIONS.md#alembic-migrations-run-on-start-postgres-through-psycopg-app-20).
+
+## Docker Compose with Postgres (2026-10-18)
+
+- The main session added `docker-compose.yaml` and the `make docker-up`/`docker-down` targets directly at the product owner's request, with no issue file. The app service builds the image and waits for a `postgres:17` service's health check, so the app migrates a ready database. `make docker-run` stays as the SQLite option.
+- Checked by hand: `docker compose up --build`, then `/api/v1/config` and `/` returned 200, `alembic_version` was at `62b6185e1c34`, and the database held the 3 seed uploads. A consent posted for a new token was still in the database after `docker compose restart app`. `docker compose down -v` cleaned up.

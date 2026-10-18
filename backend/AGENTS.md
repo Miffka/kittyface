@@ -10,6 +10,7 @@ Run from the repo root.
 - `uv run python scripts/<script>.py` runs a research track script.
 - `uv run alembic revision --autogenerate -m "<message>"` writes a migration in `backend/migrations/versions/` from the model changes in `backend/db.py`. Review it by hand before committing; `tests/backend/test_migrations.py` fails while models and migrations differ.
 - `make docker-build` builds the app image; `make docker-run` runs it on port 8091 with the database in the `kittyface-data` volume.
+- `make docker-up` runs the app image against Postgres from `docker-compose.yaml` on port 8091; `make docker-down` stops it.
 
 ## Rules
 
