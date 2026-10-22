@@ -1,0 +1,76 @@
+# The role GitHub Actions assumes to deploy from main. Apply once with admin credentials; see backend/README.md.
+# It ships the image only (deploy.sh with SKIP_STACK=1); stack changes still go through a local make deploy.
+AWSTemplateFormatVersion: "2010-09-09"
+Description: GitHub Actions deploy role for KittyFace
+
+Parameters:
+  Repo:
+    Type: String
+    Default: Miffka/kittyface
+  AppStack:
+    Type: String
+    Default: kittyface
+  # An account holds one provider per URL; pass its ARN if GitHub's is already there.
+  ExistingProviderArn:
+    Type: String
+    Default: ""
+
+Conditions:
+  CreateProvider: !Equals [!Ref ExistingProviderArn, ""]
+
+Resources:
+  Provider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If [CreateProvider, !Ref Provider, !Ref ExistingProviderArn]
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:${Repo}:ref:refs/heads/main
+      Policies:
+        - PolicyName: deploy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: cloudformation:DescribeStacks
+                Resource: !Sub arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AppStack}/*
+              - Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                Resource: !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${AppStack}
+              - Effect: Allow
+                Action: ssm:SendCommand
+                Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}::document/AWS-RunShellScript
+              - Effect: Allow
+                Action: ssm:SendCommand
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+                Condition:
+                  StringEquals:
+                    ssm:resourceTag/aws:cloudformation:stack-name: !Ref AppStack
+              # GetCommandInvocation supports no resource-level permissions, so it takes "*".
+              - Effect: Allow
+                Action: ssm:GetCommandInvocation
+                Resource: "*"
+
+Outputs:
+  RoleArn:
+    Value: !GetAtt Role.Arn

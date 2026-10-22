@@ -1,11 +1,12 @@
 #!/bin/bash
 # Creates or updates the stack, pushes the app image to its ECR repo, then pulls and restarts it on the instance.
 # Needs the AWS CLI configured for the target account and region. STACK names the stack (default kittyface).
+# SKIP_STACK=1 leaves the stack as it is and only ships the image; the CI deploy role can't change the stack.
 set -euo pipefail
 STACK=${STACK:-kittyface}
 cd "$(dirname "$0")/.."
 
-aws cloudformation deploy --template-file deploy/cloudformation.yaml --stack-name "$STACK" \
+[[ ${SKIP_STACK:-} == 1 ]] || aws cloudformation deploy --template-file deploy/cloudformation.yaml --stack-name "$STACK" \
   --capabilities CAPABILITY_IAM --no-fail-on-empty-changeset
 out() { aws cloudformation describe-stacks --stack-name "$STACK" --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" --output text; }
 repo=$(out RepositoryUri)
