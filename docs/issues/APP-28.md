@@ -1,6 +1,6 @@
 # APP-28: test and deploy on every push
 
-Groomed from the [APP-28 entry](../backlog.md#app-28-test-and-deploy-on-every-push). This file supersedes that entry.
+Groomed from the [APP-28 entry](../backlog.md#app-28-test-and-deploy-on-every-push). This file supersedes that entry. Status: delivered (QA PASS); the six criteria that need a real GitHub and AWS run are still unchecked.
 
 **Story.** As an operator, I want every push tested and every passing push to `main` deployed and checked, so a broken build never reaches users and a deploy never needs my laptop.
 
@@ -34,22 +34,22 @@ What the tests need today:
 **Acceptance criteria.**
 
 Checkable locally:
-- [ ] `uv run pytest tests/backend/test_api.py` passes and includes a test that `GET /api/v1/health` returns 200 and `{"status": "ok"}` without an `X-Client-Token` header, and a test that it returns a non-2xx status when the database query fails (for example with `app.dependency_overrides` on `get_session`).
-- [ ] `make test` passes as a whole.
-- [ ] `openapi.yaml` lists `/health` under the same server prefix as `/config`.
-- [ ] `actionlint .github/workflows/ci.yaml` reports nothing (the binary or `docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest`).
-- [ ] In the workflow file, `backend` and `frontend` have no `needs`, `e2e` has `needs: [backend, frontend]`, and `deploy` has `needs: [backend, frontend, e2e]`.
-- [ ] `deploy` carries the `if:` on `push` and `refs/heads/main`, `permissions` with `id-token: write`, the `deploy` concurrency group with `cancel-in-progress: false`, `timeout-minutes`, and no `environment:` key. The top-level `permissions` is `contents: read` alone.
-- [ ] The `e2e` and `deploy` checkouts set `lfs: true`; the `backend` and `frontend` checkouts don't.
-- [ ] `grep -rniE 'aws_access_key|aws_secret|secrets\.' .github/` returns nothing.
-- [ ] Every `uses:` line references a 40-character commit SHA.
-- [ ] The health check step reads `Url` from `describe-stacks`, calls `/api/v1/health` with a retry window of at least 5 minutes, and fails on a non-2xx response after the last retry. Point at the `curl` flags or loop.
-- [ ] `uvx cfn-lint deploy/github-oidc.yaml deploy/cloudformation.yaml` reports nothing.
-- [ ] The trust policy in `deploy/github-oidc.yaml` uses `StringEquals` on both `aud` and `sub`, with `sub` resolving to `repo:Miffka/kittyface:ref:refs/heads/main` under the default parameters.
-- [ ] The role's policy has no `iam:` actions, no `cloudformation:` action other than `DescribeStacks`, and no `Resource: "*"` except on `ecr:GetAuthorizationToken`.
-- [ ] `bash -n deploy/deploy.sh` passes, and with `SKIP_STACK=1` the script reaches no `aws cloudformation deploy` call (read the script, or run it with `aws` stubbed by a shell function that logs its arguments).
-- [ ] `backend/README.md` lists the one-time setup steps in order: `make deploy`, the OIDC stack, the two repo variables.
-- [ ] `docs/DECISIONS.md` has the three entries listed in scope.
+- [x] `uv run pytest tests/backend/test_api.py` passes and includes a test that `GET /api/v1/health` returns 200 and `{"status": "ok"}` without an `X-Client-Token` header, and a test that it returns a non-2xx status when the database query fails (for example with `app.dependency_overrides` on `get_session`).
+- [x] `make test` passes as a whole.
+- [x] `openapi.yaml` lists `/health` under the same server prefix as `/config`.
+- [x] `actionlint .github/workflows/ci.yaml` reports nothing (the binary or `docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest`).
+- [x] In the workflow file, `backend` and `frontend` have no `needs`, `e2e` has `needs: [backend, frontend]`, and `deploy` has `needs: [backend, frontend, e2e]`.
+- [x] `deploy` carries the `if:` on `push` and `refs/heads/main`, `permissions` with `id-token: write`, the `deploy` concurrency group with `cancel-in-progress: false`, `timeout-minutes`, and no `environment:` key. The top-level `permissions` is `contents: read` alone.
+- [x] The `e2e` and `deploy` checkouts set `lfs: true`; the `backend` and `frontend` checkouts don't.
+- [x] `grep -rniE 'aws_access_key|aws_secret|secrets\.' .github/` returns nothing.
+- [x] Every `uses:` line references a 40-character commit SHA.
+- [x] The health check step reads `Url` from `describe-stacks`, calls `/api/v1/health` with a retry window of at least 5 minutes, and fails on a non-2xx response after the last retry. Point at the `curl` flags or loop.
+- [x] `uvx cfn-lint deploy/github-oidc.yaml deploy/cloudformation.yaml` reports nothing.
+- [x] The trust policy in `deploy/github-oidc.yaml` uses `StringEquals` on both `aud` and `sub`, with `sub` resolving to `repo:Miffka/kittyface:ref:refs/heads/main` under the default parameters.
+- [x] The role's policy has no `iam:` actions, no `cloudformation:` action other than `DescribeStacks`, and no `Resource: "*"` except on `ecr:GetAuthorizationToken`.
+- [x] `bash -n deploy/deploy.sh` passes, and with `SKIP_STACK=1` the script reaches no `aws cloudformation deploy` call (read the script, or run it with `aws` stubbed by a shell function that logs its arguments).
+- [x] `backend/README.md` lists the one-time setup steps in order: `make deploy`, the OIDC stack, the two repo variables.
+- [x] `docs/DECISIONS.md` has the three entries listed in scope.
 
 Checkable only on a real run (the product owner checks these after the operator setup):
 - [ ] A push to a non-main branch runs `backend`, `frontend` and `e2e`, and the run shows `deploy` as skipped.
