@@ -31,6 +31,24 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AppConfig" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
+  /health:
+    get:
+      operationId: getHealth
+      summary: Liveness check that also queries the database.
+      description: Used by the deploy pipeline. Needs no client token.
+      security: []
+      responses:
+        "200":
+          description: The app is up and the database answers.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok] }
+        "500":
+          description: The database query failed.
   /consent:
     post:
       operationId: postConsent

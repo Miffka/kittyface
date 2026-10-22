@@ -5,7 +5,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from backend import store
@@ -48,6 +48,13 @@ def summary(u: Upload) -> UploadSummary:
         model_version=u.meta["model_version"],
         user_measurements=u.meta["user_measurements"],
     )
+
+
+# Unauthenticated; an unreachable database raises, so the deploy check sees a 500.
+@router.get("/health")
+def health(db: DB):
+    db.execute(text("SELECT 1"))
+    return {"status": "ok"}
 
 
 @router.get("/config", response_model=AppConfig)

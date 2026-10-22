@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from backend.db import DATABASE_URL, Upload
+from backend.db import DATABASE_URL, Upload, get_session
 from backend.main import app
 from backend.store import CONFIG, DEMO_TOKEN, solid_png
 
@@ -66,6 +66,23 @@ def save(token, meta=None, image=PNG, content_type="image/png"):
             ),
         },
     )
+
+
+def test_health_needs_no_token():
+    r = client.get("/api/v1/health")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok"}
+
+
+def test_health_fails_without_database():
+    # Port 1 refuses connections, so SELECT 1 raises.
+    dead = create_engine("postgresql+psycopg://x:x@127.0.0.1:1/x")
+    app.dependency_overrides[get_session] = lambda: Session(dead)
+    try:
+        r = TestClient(app, raise_server_exceptions=False).get("/api/v1/health")
+    finally:
+        app.dependency_overrides.clear()
+    assert r.status_code == 500
 
 
 def test_config_needs_no_token():
