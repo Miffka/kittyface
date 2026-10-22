@@ -95,3 +95,15 @@ The product owner chose to build the image locally and push it to an ECR repo in
 The product owner wanted HTTPS without buying a domain. `<elastic-ip>.sslip.io` resolves to the Elastic IP, and Caddy gets a Let's Encrypt certificate for it on first start. sslip.io shares Let's Encrypt's rate limits with all its users; a real domain replaces it by changing the `HOST` line in the template.
 
 The shell goes through SSM Session Manager: no key pair, and the security group opens only 80 and 443. `deploy/deploy.sh` also uses SSM to pull the new image and restart compose, and it generates the Postgres password on the instance, so the password never leaves it.
+
+## The pipeline ships the image and leaves the stack to the operator (APP-28)
+
+`.github/workflows/ci.yaml` runs the backend and frontend tests in parallel, the E2E suite once both pass, and on a push to `main` a deploy job. The deploy runs `deploy/deploy.sh` with `SKIP_STACK=1`: it reads the stack outputs, pushes the image and restarts compose over SSM, but never calls `aws cloudformation deploy`. Applying the template needs IAM permissions, because the stack creates the instance role, and a CI role that can write IAM can grant itself anything. So template changes still go through a local `make deploy` with the operator's credentials; moving them into the pipeline is APP-29. The deploy job sits in one `deploy` concurrency group with `cancel-in-progress: false`, so a second push waits instead of cutting off a restart halfway. It rebuilds the image from the same commit rather than shipping the one the E2E job tested (APP-31), and a failed health check leaves the new image running (APP-30).
+
+## The GitHub OIDC role lives in its own template, trusted for `main` only (APP-28)
+
+`deploy/github-oidc.yaml` holds the GitHub OIDC provider and the deploy role, and the operator applies it once with admin credentials. A pipeline can't create the trust it needs to authenticate, and keeping the role out of `deploy/cloudformation.yaml` means `deploy.sh` never touches it. The trust policy uses `StringEquals` on `aud` and on `sub` = `repo:Miffka/kittyface:ref:refs/heads/main`, so other branches, pull requests and forks can't assume it. The job sets no GitHub `environment`, which would change `sub` to `repo:...:environment:<name>` and fail that check. The role can describe the app stack, push to its ECR repo, and send `AWS-RunShellScript` to instances tagged with the stack's name. `ecr:GetAuthorizationToken` and `ssm:GetCommandInvocation` take `Resource: "*"`, because neither supports resource-level permissions. An account allows one provider per URL, so `ExistingProviderArn` reuses one that's already there.
+
+## The health route checks the database (APP-28)
+
+`GET /api/v1/health` runs `SELECT 1` through `get_session` and returns `{"status": "ok"}`. A failed query raises, and the app answers 500. The deploy check polls it, so a container that starts but can't reach Postgres fails the deploy, where `/api/v1/config` would still answer 200 from memory. It needs no client token or consent.

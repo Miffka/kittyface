@@ -45,3 +45,20 @@ make deploy     # STACK=name picks another stack, default kittyface
 `deploy/deploy.sh` creates or updates the CloudFormation stack in `deploy/cloudformation.yaml`, builds the image for `linux/amd64`, pushes it to the stack's ECR repo, then pulls it and restarts compose on the instance over SSM. It prints the app's URL, `https://<elastic-ip>.sslip.io`. The first run takes a few minutes longer while the instance installs Docker.
 
 The instance is a t3.micro running Ubuntu 24.04 with a 2 GB swap file, and runs the app, `postgres:17` and Caddy from `/opt/kittyface/compose.yaml`. Postgres keeps its data on the instance's disk, so deleting the stack or replacing the instance deletes every upload. Open a shell with `aws ssm start-session --target <instance-id>`, which needs the [Session Manager plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html). `aws cloudformation delete-stack --stack-name kittyface` removes everything.
+
+### Deploy from GitHub Actions
+
+`.github/workflows/ci.yaml` runs the backend and frontend tests in parallel on every push and pull request, then the E2E suite. A passing push to `main` runs `deploy/deploy.sh` with `SKIP_STACK=1`, which pushes the image and restarts compose but leaves the stack alone, then waits up to 5 minutes for a 200 from `<Url>/api/v1/health`. The job assumes an IAM role through GitHub OIDC, so the repo holds no AWS keys.
+
+One-time setup, in this order:
+
+1. Run `make deploy` once with your own credentials, so the `kittyface` stack exists.
+2. Create the deploy role and the GitHub OIDC provider with admin credentials:
+   ```sh
+   aws cloudformation deploy --template-file deploy/github-oidc.yaml --stack-name kittyface-github --capabilities CAPABILITY_IAM
+   aws cloudformation describe-stacks --stack-name kittyface-github --query "Stacks[0].Outputs[?OutputKey=='RoleArn'].OutputValue" --output text
+   ```
+   If the account already has a provider for `token.actions.githubusercontent.com`, add `--parameter-overrides ExistingProviderArn=<its arn>`. The role trusts pushes to `main` of `Miffka/kittyface` only.
+3. In the GitHub repo, under Settings > Secrets and variables > Actions > Variables, set `AWS_ROLE_ARN` to the printed ARN and `AWS_REGION` to the stack's region.
+
+The role can't change the stack, so edits to `deploy/cloudformation.yaml` still need a local `make deploy`. Don't run one while a pipeline deploy is in progress: the pipeline only queues its own deploys.

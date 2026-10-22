@@ -15,6 +15,7 @@ Run from the repo root.
 - `uv run alembic revision --autogenerate -m "<message>"` writes a migration in `backend/migrations/versions/` from the model changes in `backend/db.py`. Review it by hand before committing; `tests/backend/test_migrations.py` fails while models and migrations differ.
 - `make docker-build` builds the app image.
 - `make docker-up` runs the app image against Postgres from `docker-compose.yaml` on port 8091; `make docker-down` stops it.
+- `.github/workflows/ci.yaml` runs `make test`, the frontend tests and `make test-e2e` on every push; a passing push to `main` also runs `deploy/deploy.sh` with `SKIP_STACK=1` and checks `/api/v1/health`.
 
 ## Rules
 
