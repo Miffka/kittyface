@@ -1,0 +1,86 @@
+# Tests every push and pull request; a passing push to main ships the image and checks /api/v1/health.
+# The deploy role and repo variables come from the one-time setup in backend/README.md.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+      - run: cp .example.env .env
+      - run: make db
+      - run: make test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.3
+      - run: bun install --frozen-lockfile
+      - run: bun --bun run test
+
+  # Waits for the fast jobs so a broken push spends no LFS bandwidth or image build.
+  e2e:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: true
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+      - run: cp .example.env .env
+      - run: uv run playwright install --with-deps chromium
+      - run: make test-e2e
+
+  deploy:
+    needs: [backend, frontend, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    # Queues a second deploy instead of cutting off the running one.
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    # deploy.sh waits for SSM without a limit.
+    timeout-minutes: 30
+    # No environment: it would change the token's sub claim, which the role's trust policy pins to main.
+    steps:
+      - name: Check AWS_ROLE_ARN
+        if: vars.AWS_ROLE_ARN == ''
+        run: |
+          echo "::error::Set the AWS_ROLE_ARN repo variable; see 'Deploy to AWS' in backend/README.md"
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: true
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: ./deploy/deploy.sh
+        env:
+          SKIP_STACK: 1
+      # 30 retries 10 s apart cover start-up migrations and, on a first deploy, Caddy's certificate.
+      - name: Health check
+        run: |
+          url=$(aws cloudformation describe-stacks --stack-name kittyface --query "Stacks[0].Outputs[?OutputKey=='Url'].OutputValue" --output text)
+          curl -fsS --retry 30 --retry-delay 10 --retry-all-errors "$url/api/v1/health"
