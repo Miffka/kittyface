@@ -80,3 +80,10 @@
 - The PM subagent groomed the product owner's request into [issues/APP-28.md](issues/APP-28.md): GitHub Actions jobs for the backend and frontend tests in parallel, the E2E suite after both, and a deploy on `main` through a GitHub OIDC role, checked against a new `GET /api/v1/health`.
 - The engineer can't run Actions or touch AWS, so the issue splits its criteria into local checks (actionlint, cfn-lint, the job graph in the file, a pytest for the health route) and checks only a real run can confirm.
 - The PM kept the deploy role away from IAM: the pipeline pushes the image and restarts compose, and template changes still go through `make deploy`. Applying template changes, rollback and shipping the tested image are filed as APP-29 to APP-31.
+
+## APP-28: CI/CD pipeline, delivery (2026-10-22)
+
+- The Engineer subagent implemented [issues/APP-28.md](issues/APP-28.md): `GET /api/v1/health`, `.github/workflows/ci.yaml`, `deploy/github-oidc.yaml`, `SKIP_STACK=1` in `deploy/deploy.sh`, and the README setup steps.
+- It pinned each action to the commit SHA of its latest release tag, read with `git ls-remote`, rather than writing SHAs from memory.
+- It checked the AWS service reference before writing the role policy and found that `ssm:GetCommandInvocation` supports no resource-level permissions, so it needs `Resource: "*"`, which one acceptance criterion forbids. The engineer used `"*"` and commented on the issue instead of dropping the call `deploy.sh` depends on.
+- Checked locally: actionlint 1.7.12 and cfn-lint report nothing, `make test` gave 31 passed, the frontend 24 passed, `make test-e2e` 12 passed and 1 xfailed. `deploy.sh` run with stubbed `aws` and `docker` skips `aws cloudformation deploy` under `SKIP_STACK=1` and calls it without. Nothing ran on GitHub or AWS.

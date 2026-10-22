@@ -66,3 +66,22 @@ Checkable only on a real run (the product owner checks these after the operator 
 - A local `make deploy` running at the same time as a pipeline deploy. The concurrency group covers pipeline runs only; the README note covers the operator.
 
 **Depends on.** APP-23 (the stack and `deploy/deploy.sh`), and the operator's one-time setup before the first pipeline deploy.
+
+**Comment on an acceptance criterion.** "The role's policy has no `Resource: "*"` except on `ecr:GetAuthorizationToken`" can't hold as written. `deploy.sh` polls `ssm get-command-invocation`, and the [AWS service reference](https://servicereference.us-east-1.amazonaws.com/v1/ssm/ssm.json) lists no resource types for `ssm:GetCommandInvocation`, so IAM only grants it with `Resource: "*"`. The template gives `"*"` to `ecr:GetAuthorizationToken` and `ssm:GetCommandInvocation`, both read-only, and scopes everything else. QA should read the criterion as allowing both.
+
+**Engineer notes.**
+
+- `GET /api/v1/health` in `backend/routers.py` runs `SELECT 1` through `get_session` and returns `{"status": "ok"}`; a failed query raises, so the app answers 500. `openapi.yaml` lists `/health` under the `/api/v1` server with `security: []`. Two tests in `tests/backend/test_api.py`: 200 without a token, and 500 with `get_session` overridden to a session on `127.0.0.1:1`, which refuses connections.
+- `.github/workflows/ci.yaml` has the four jobs and the graph the scope asks for. Actions are pinned to the SHAs of `actions/checkout` v7.0.1, `astral-sh/setup-uv` v10.3.2, `oven-sh/setup-bun` v2.2.0 and `aws-actions/configure-aws-credentials` v6.3.0, all lightweight tags read with `git ls-remote`. The deploy job's first step fails with an `::error::` naming `AWS_ROLE_ARN` and `backend/README.md` when the variable is empty. The health check is `curl -fsS --retry 30 --retry-delay 10 --retry-all-errors "$url/api/v1/health"` with `$url` read from the `Url` output of `describe-stacks`: `-f` turns a non-2xx into an error, and 30 retries 10 s apart give a window of at least 300 s.
+- `deploy/deploy.sh` skips `aws cloudformation deploy` when `SKIP_STACK=1` and runs as before otherwise.
+- `deploy/github-oidc.yaml` holds the conditional provider, the role with `StringEquals` on `aud` and `sub`, and its policy. `ssm:SendCommand` is split into two statements, one on the `AWS-RunShellScript` document and one on instances with `ssm:resourceTag/aws:cloudformation:stack-name` = `AppStack`, because a tag condition in one statement would also apply to the untagged document. The push actions are the five `docker push` needs.
+- Docs: a "Deploy from GitHub Actions" subsection in `backend/README.md`, one line in `backend/AGENTS.md`, three `docs/DECISIONS.md` entries and a `docs/AI_WORKFLOW.md` entry.
+- Verified locally:
+  - `uv run pytest tests/backend/test_api.py`: 12 passed. `make test`: 31 passed.
+  - `bun --bun run test` in `frontend/`: 24 passed.
+  - `make test-e2e`: 12 passed, 1 xfailed (cat8, as before).
+  - actionlint 1.7.12 (release binary) on `.github/workflows/ci.yaml`: no output.
+  - `uvx cfn-lint deploy/github-oidc.yaml deploy/cloudformation.yaml`: no output.
+  - `grep -rniE 'aws_access_key|aws_secret|secrets\.' .github/`: no match. Every `uses:` line matches `@[0-9a-f]{40}`.
+  - `bash -n deploy/deploy.sh` passes. With `aws` and `docker` stubbed as exported shell functions that log their arguments, `SKIP_STACK=1` produced only `describe-stacks`, ECR and SSM calls; without it the log starts with `aws cloudformation deploy`.
+- Not verified: anything on GitHub Actions or AWS, which covers the "real run" criteria, whether the OIDC role can assume and push, and whether `ssm:resourceTag/aws:cloudformation:stack-name` matches the instance's tag in practice. `ruff format --check` flags `tests/test_export_onnx.py` and `tests/test_geometry.py`, which this issue didn't touch.
