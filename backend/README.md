@@ -59,6 +59,6 @@ One-time setup, in this order:
    aws cloudformation describe-stacks --stack-name kittyface-github --query "Stacks[0].Outputs[?OutputKey=='RoleArn'].OutputValue" --output text
    ```
    If the account already has a provider for `token.actions.githubusercontent.com`, add `--parameter-overrides ExistingProviderArn=<its arn>`. The role trusts pushes to `main` of `Miffka/kittyface` only.
-3. In the GitHub repo, under Settings > Secrets and variables > Actions > Variables, set `AWS_ROLE_ARN` to the printed ARN and `AWS_REGION` to the stack's region.
+3. In the GitHub repo, under Settings > Secrets and variables > Actions > Secrets, add the repository secrets `AWS_ROLE_ARN`, set to the printed ARN, and `AWS_REGION`, set to the stack's region. They're secrets so the account ID stays out of the public run logs.
 
 The role can't change the stack, so edits to `deploy/cloudformation.yaml` still need a local `make deploy`. Don't run one while a pipeline deploy is in progress: the pipeline only queues its own deploys.
