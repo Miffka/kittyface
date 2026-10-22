@@ -351,3 +351,55 @@ This is a Scrum product backlog, not a build plan by layer: stories are ordered 
 - [ ] Each alert states which condition fired, not a generic message.
 
 **Depends on.** APP-21, APP-23.
+
+### APP-28: test and deploy on every push
+
+**Story.** As an operator, I want every push tested and every passing push to `main` deployed and checked, so a broken build never reaches users and a deploy never needs my laptop.
+
+**Scope.** A CI/CD pipeline that runs the backend and frontend tests in parallel, builds the Docker Compose stack and runs the integration and end-to-end tests against it, deploys to AWS through a GitHub OIDC role, and confirms the deploy by checking the health endpoint.
+
+**Acceptance criteria.**
+- [ ] Backend and frontend tests run as parallel jobs.
+- [ ] Integration and end-to-end tests run against the built compose stack.
+- [ ] The deploy authenticates to AWS with a GitHub OIDC role, no stored AWS keys.
+- [ ] The pipeline fails if the deployed health endpoint does not respond successfully.
+
+**Depends on.** APP-23.
+
+### APP-29: apply infrastructure changes from the pipeline
+
+**Story.** As an operator, I want changes to the app's CloudFormation template applied by the pipeline, so infrastructure changes don't need my laptop either.
+
+**Scope.** Updating the app stack from the CI/CD pipeline on a passing push to `main`, after APP-28's tests.
+
+**Acceptance criteria.**
+- [ ] A change to the app's template on `main` reaches the stack without a local `make deploy`.
+- [ ] An unchanged template leaves the stack untouched.
+- [ ] A pull request or a non-main branch never changes the stack.
+
+**Depends on.** APP-28.
+
+### APP-30: roll back a failed deploy
+
+**Story.** As an operator, I want a deploy that fails its health check undone, so users get the last working version instead of a broken one.
+
+**Scope.** Restoring the previously running version when APP-28's post-deploy health check fails.
+
+**Acceptance criteria.**
+- [ ] A deploy whose health check fails leaves the previous version serving.
+- [ ] The pipeline still reports the failed deploy as failed.
+- [ ] A successful deploy is not rolled back.
+
+**Depends on.** APP-28.
+
+### APP-31: ship the image the tests passed
+
+**Story.** As an operator, I want the image that reaches users to be the one the end-to-end tests ran against, so a rebuild can't ship something untested.
+
+**Scope.** Deploying the image built and tested in APP-28's end-to-end job instead of building it again for the deploy.
+
+**Acceptance criteria.**
+- [ ] The deployed image's digest matches the digest the end-to-end tests ran against.
+- [ ] The deploy builds no image.
+
+**Depends on.** APP-28.
