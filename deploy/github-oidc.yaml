@@ -4,9 +4,10 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: GitHub Actions deploy role for KittyFace
 
 Parameters:
+  # The repo uses immutable OIDC subjects, owner@id/repo@id; `gh api repos/OWNER/REPO/actions/oidc/customization/sub` prints the prefix.
   Repo:
     Type: String
-    Default: Miffka/kittyface
+    Default: Miffka@19988813/kittyface@1393520322
   AppStack:
     Type: String
     Default: kittyface

@@ -58,7 +58,7 @@ One-time setup, in this order:
    aws cloudformation deploy --template-file deploy/github-oidc.yaml --stack-name kittyface-github --capabilities CAPABILITY_IAM
    aws cloudformation describe-stacks --stack-name kittyface-github --query "Stacks[0].Outputs[?OutputKey=='RoleArn'].OutputValue" --output text
    ```
-   If the account already has a provider for `token.actions.githubusercontent.com`, add `--parameter-overrides ExistingProviderArn=<its arn>`. The role trusts pushes to `main` of `Miffka/kittyface` only.
+   If the account already has a provider for `token.actions.githubusercontent.com`, add `--parameter-overrides ExistingProviderArn=<its arn>`. The role trusts pushes to `main` of `Miffka/kittyface` only. The repo uses GitHub's immutable OIDC subjects, so the template's `Repo` parameter holds the owner and repo IDs (`Miffka@19988813/kittyface@1393520322`); for a fork or another repo, take the prefix from `gh api repos/OWNER/REPO/actions/oidc/customization/sub`.
 3. In the GitHub repo, under Settings > Secrets and variables > Actions > Secrets, add the repository secrets `AWS_ROLE_ARN`, set to the printed ARN, and `AWS_REGION`, set to the stack's region. They're secrets so the account ID stays out of the public run logs.
 
 The role can't change the stack, so edits to `deploy/cloudformation.yaml` still need a local `make deploy`. Don't run one while a pipeline deploy is in progress: the pipeline only queues its own deploys.
